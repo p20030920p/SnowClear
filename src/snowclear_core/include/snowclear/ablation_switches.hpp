@@ -14,7 +14,10 @@ struct AblationSwitches {
     // 注意：本结构与 load() 的默认值必须与 config/snowclear_params.yaml
     // 的“最终配置”保持一致，否则直接运行二进制（不经 launch）会静默启用已废弃特征。
     // 1. 预处理模块开关
-    bool enable_pre_downsampling = false;     // 最终配置关闭（>10万点降采样路径保留，开关默认关）
+    // 最终配置关闭。注意：这一个开关背后有两道**不同**的点数门限——
+    // 检测阶段 >10万点（cloud_operations.cpp），Preprocessor::run >40万点。
+    // 两者故意不统一：统一会改变开关打开时的降采样路径。
+    bool enable_pre_downsampling = false;
     bool use_adaptive_leaf_size = false;      // 仅预降采样开启时有意义，默认关闭
     bool enable_height_distance_filter = true;
     bool use_conservative_filtering = false;  // 最终配置关闭（保守放宽默认不启用）
@@ -76,7 +79,7 @@ struct AblationSwitches {
     // 误杀 99968 个真雪点 —— 这才是旧结论 F1<0.65 的真正根因（密雪体积性互相占位）。
     // 修正后抑制纯度 98.17%（高于现行度量球 95.34%），但其检出的背景点 99.7% 是现行
     // 测试的子集，端到端仅 +0.03 pp，不值得引入多帧缓存/ICP 依赖，故仍不集成。
-    // 详见 docs/AUDIT_REPORT.md 附录 B。
+    // 详见 docs/MIGRATION_ROS1.md §5（原审计报告未随本仓库发布）。
 
     // 9. 可移植性（跨传感器）开关
     // ---------------------------------------------------------------------
@@ -100,7 +103,7 @@ struct AblationSwitches {
     bool use_threshold_lut = true;                // IDSOR 阈值改查表（等价，省 0.96 ms/帧）
 
     // 10. 评估口径
-    // 严格口径（默认开启）修正五处会让指标偏乐观/失真的缺陷，详见 evaluator.h 顶部注释：
+    // 严格口径（默认开启）修正五处会让指标偏乐观/失真的缺陷，详见 snowclear/evaluator.hpp 顶部注释：
     //   零检测帧不再被排除在宏平均之外 / 空GT视为零雪帧照常评估 /
     //   accuracy 按评估子集口径 / 零分母报 0 而非 100% / GT 去重+过滤负索引。
     // 关闭它可复现旧口径数字以作对照。

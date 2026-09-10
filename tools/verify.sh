@@ -10,9 +10,19 @@ rm -rf build install log
 colcon build --cmake-args -DCMAKE_BUILD_TYPE=Release 2>&1 | grep -E "Finished|Failed|Summary|error:" | head
 
 source install/setup.bash
-DATA=${SNOWCLEAR_DATA:-/home/qzl/workspace/Snow_Removal/Snow_point/src/clustering/data}
+# Dataset root. There is deliberately no author-local default: point SNOWCLEAR_DATA
+# at a WADS mirror in the layout described in docs/DATASET.md, or place the mirror
+# in ./data (git-ignored).
+DATA=${SNOWCLEAR_DATA:-$ROOT/data}
 FRAME=$DATA/pcd_output/35/velodyne/042126.pcd
 PARAMS=src/snowclear_ros/config/snowclear_params.yaml
+
+if [[ ! -f $FRAME ]]; then
+  echo "no dataset: $FRAME not found" >&2
+  echo "  export SNOWCLEAR_DATA=<mirror root>, or place the mirror in $ROOT/data" >&2
+  echo "  expected layout: docs/DATASET.md" >&2
+  exit 1
+fi
 
 echo
 echo "=== 2. generated artefacts up to date ==="

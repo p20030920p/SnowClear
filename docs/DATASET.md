@@ -152,7 +152,8 @@ the only scenes in the mirror where that limit actually binds.
   only. Prefer precision / recall / F1 in any write-up.
 * Ground-truth points removed by the ROI gate are counted as **false negatives**. They are a
   hard recall ceiling: measured at 8.23 % loss over the 16-scene set and 12.25 % over all
-  1 828 frames. See `docs/AUDIT_REPORT.md` §1.1.
+  1 828 frames. The original audit report is not distributed with this repository; see
+  [`MIGRATION_ROS1.md`](MIGRATION_ROS1.md) §5.
 * To save the detection indices for an independent audit:
 
   ```bash

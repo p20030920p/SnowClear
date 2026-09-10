@@ -1,8 +1,8 @@
 #include "snowclear/cloud_operations.hpp"
 
 // =====================================================================
-// 本文件可调参数：全部集中在 include/system_config.h（数值参数）与
-// include/ablation_switches.h（消融开关），可经 launch 或 _param:=value 覆盖。
+// 本文件可调参数：全部集中在 include/snowclear/system_config.hpp（数值参数）与
+// include/snowclear/ablation_switches.hpp（消融开关），可经 launch 或 _param:=value 覆盖。
 // 本文件直接相关的运行参数:
 //   detector_type   feature_fusion | dror | dsor   检测器选择
 //   result_folder / gt_folder / output_dir          GT 与输出目录
@@ -106,7 +106,7 @@ void CloudOperations::print_average_timing(const std::string& prefix) const {
 // =============== 传感器自标定 =============== //
 // 每帧调用：在标定窗口内累积观测；窗口满后把标定结果一次性应用到各模块。
 // 目的：把原实现里四个平台相关的绝对常数换成无标签自标定量。
-// 实测依据（docs/AUDIT_REPORT.md 附录 A）：
+// 实测依据（原审计报告未随本仓库发布，见 docs/MIGRATION_ROS1.md §5）：
 //   CADC(VLP-32C, intensity 归一化 0..1)：无点满足 I>1.0 -> 支撑点集空
 //     -> 表面抑制整体失效 -> 90.16% 的 ROI 点被判成雪
 //   安装高度 +0.9 m（虚拟平台，保留标签）：F1 92.92 -> 68.56 (-24.36 pp)
@@ -274,6 +274,11 @@ void CloudOperations::snow_filter_feature_fusion(const CloudPtr& input_cloud,
         std::vector<int> downsampled_to_original;
         bool using_downsampled = false;
 
+        // 【已知问题，故意未改】同一个 enable_pre_downsampling 开关背后有两道
+        // 点数门限：这里是 >10万点（走 optimizer_->downsample），而
+        // Preprocessor::run 里是 >40万点（走 pre_downsample_large_cloud）。
+        // 统一两处会在开关打开时改变降采样路径 -> 改变检测输出，因此只在两处
+        // 互相注明，不动数值。
         if (switches_.enable_pre_downsampling && input_cloud->size() > 100000) {
             float adaptive_leaf_size = preprocessor_->adaptive_leaf_size(input_cloud->size(),
                                                                           current_cloud_features_);

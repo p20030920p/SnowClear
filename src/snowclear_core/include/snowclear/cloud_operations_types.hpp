@@ -185,7 +185,7 @@ struct RangeIntensityThreshold {
     float smooth_r0 = 5.0f;     // 距离递增起始半径
     float max_intensity = 255.0f;
 
-    // ---- α(r) 查表加速（数学等价，见 docs/AUDIT_REPORT.md §3.1 H2） ----
+    // ---- α(r) 查表加速（数学等价改写；实测数据见下方注释） ----
     // 原实现对**每个点**调用 pow + exp + tgamma + sqrt。其中 tgamma(smooth_k) 是
     // 帧常量却逐点重算；且 α 只依赖 r，与 intensity 无关。
     // 实测（单线程 -O3, ROI 5.4 万点/帧）：1.140 ms -> 0.179 ms，省 84%。

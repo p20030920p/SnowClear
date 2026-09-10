@@ -2,7 +2,7 @@
 #include "snowclear/snow_detector.hpp"
 
 // =====================================================================
-// 本文件可调参数（默认值见 system_config.h 与 ablation_switches.h）
+// 本文件可调参数（默认值见 snowclear/system_config.hpp 与 snowclear/ablation_switches.hpp）
 // ---------------------------------------------------------------------
 //   use_adaptive_intensity_threshold   开   自适应强度阈值（Q1×0.8±修正，钳制[2.5,8.0]）
 //   rgor_intensity_threshold           6.0  固定强度阈值（自适应关闭时使用）

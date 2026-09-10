@@ -1,7 +1,7 @@
 #include "snowclear/snow_detector.hpp"
 
 // =====================================================================
-// 本文件可调参数（默认值见 system_config.h 与 ablation_switches.h）
+// 本文件可调参数（默认值见 snowclear/system_config.hpp 与 snowclear/ablation_switches.hpp）
 // ---------------------------------------------------------------------
 // 数值参数（构造注入，来自 SystemConfig）:
 //   detector_knn                    5     检测 KNN 近邻数（几何特征开启时）

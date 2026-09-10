@@ -1,17 +1,18 @@
 #include "snowclear/preprocessor.hpp"
 
 // =====================================================================
-// 本文件可调参数（ROS 参数服务器 / launch 可覆盖，默认值见 system_config.h
-// 与 ablation_switches.h）
+// 本文件可调参数（ROS 2 参数 / YAML / launch 可覆盖，默认值见
+// snowclear/system_config.hpp 与 snowclear/ablation_switches.hpp）
 // ---------------------------------------------------------------------
 // 数值参数:
-//   height_threshold            2.3    z 上界（米），预处理高度过滤
-//   xy_threshold                13.0   水平距离上界（米）
+//   height_threshold            2.6    z 上界（米），预处理高度过滤
+//   xy_threshold                17.0   水平距离上界（米）
 //   lowest_ring_elevation_deg   -23.0  最低扫描环排除仰角阈值（度）
 //   filter_downsampling_leaf_size 0.06 预降采样体素叶子尺寸（米）
 //   ror_radius / ror_neighbors  0.8/2  离群点过滤半径与邻居数（开关开启时）
 // 消融开关:
-//   enable_pre_downsampling      关   超大点云预降采样（>40万点触发）
+//   enable_pre_downsampling      关   超大点云预降采样（本文件 >40万点触发；
+//                                      检测阶段另有一道 >10万点门限，见 cloud_operations.cpp）
 //   use_adaptive_leaf_size       关   自适应叶子尺寸
 //   enable_height_distance_filter 开  ROI 高度/距离过滤（决定性模块）
 //   use_conservative_filtering   关   过滤过于激进时自动放宽
@@ -75,7 +76,7 @@ double horizontal_distance_sq(const CloudPoint& pt) {
 // 快路径（数学等价）：asin 在 [-1,1] 上单调递增，故
 //     asin(z/range) >= min_elev  <=>  z/range >= sin(min_elev)  <=>  z >= sin(min_elev)*range
 // 省掉每点一次 asin 和一次除法。这段跑在**过滤前的全量点云**上（约 20 万点/帧），
-// 实测 1.816 ms -> 1.166 ms，省 0.650 ms/帧（36%）。见 AUDIT_REPORT.md §3.1 H1。
+// 实测 1.816 ms -> 1.166 ms，省 0.650 ms/帧（36%）。
 // 注：range <= 1e-6 的退化点在原实现里 elevation 记为 0，对 min_elev<0 恒通过；
 // 快路径 z >= s*range ≈ z >= 0 对这些点等价（z 也≈0）。
 inline bool elevation_pass(const CloudPoint& pt, bool check_elevation,
@@ -721,6 +722,9 @@ ProcessedCloud Preprocessor::run(const CloudPtr& input_cloud, const CloudFeature
     }
 
     // 2. 超大点云预降采样（与去重映射串联）
+    // 【已知问题，故意未改】检测阶段还有一道 >10万点的同类门限
+    // （cloud_operations.cpp），与这里的 >40万点不一致；统一会改变开关打开时的
+    // 行为，故仅在两处互相注明。
     if (switches_.enable_pre_downsampling && working_cloud->size() > 400000) {
         std::vector<int> sampling_to_original;
         CloudPtr downsampled =

@@ -1,7 +1,7 @@
 #include "snowclear/feature_extractor.hpp"
 
 // =====================================================================
-// 本文件可调参数（消融开关，默认值见 ablation_switches.h）
+// 本文件可调参数（消融开关，默认值见 snowclear/ablation_switches.hpp）
 // ---------------------------------------------------------------------
 //   use_intensity_histogram_stats   开   256级直方图统计（确定性并行）
 //   use_adaptive_intensity_threshold 开  自适应强度阈值（Q1驱动，见 parameter_optimizer）

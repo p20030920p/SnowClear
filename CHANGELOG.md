@@ -3,6 +3,29 @@
 All notable changes to this project are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased]
+
+### Fixed
+
+Documentation, comments and tooling only — no behaviour change. Both byte-exact gates and all
+15 unit tests still pass, and the generated parameter views are unchanged
+(`gen_param_map.py --check` and `gen_ros2_params.py --check` both clean).
+
+- `tools/verify.sh` hard-coded an author-local dataset path. It now defaults to the documented
+  `./data` layout (still overridable via `SNOWCLEAR_DATA`) and exits with the layout reference
+  when the frame is missing, instead of reporting a confusing reference mismatch.
+- Six comments and one documentation section pointed at `docs/AUDIT_REPORT.md`, which is not
+  distributed with this repository. They now point at `docs/MIGRATION_ROS1.md` §5.
+- Comments in ten files still used the pre-port header names (`system_config.h`,
+  `ablation_switches.h`, `evaluator.h`, `sensor_calibration.h`). The headers are `.hpp` under
+  `include/snowclear/`.
+- `src/preprocessor.cpp`'s parameter table quoted stale defaults (`height_threshold` 2.3,
+  `xy_threshold` 13.0) instead of the released 2.6 / 17.0.
+- The two divergent point-count gates behind `enable_pre_downsampling` (>100 k points in the
+  detector stage, >400 k in `Preprocessor::run`) are now stated at both sites and in the switch
+  declaration, explicitly marked as deliberately unchanged: unifying them would alter behaviour
+  when the switch is enabled.
+
 ## [1.0.0] — 2026-09-10
 
 First release of SnowClear: a ROS 2 port of the ROS 1 `clustering` catkin package,

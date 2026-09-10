@@ -16,7 +16,7 @@ namespace snowclear {
 // =====================================================================
 // 系统参数集中管理（解耦：参数读取/打印不再散落在 CloudOperations 构造函数）
 // ---------------------------------------------------------------------
-// 全部可调参数（除消融开关，见 ablation_switches.h）在此处声明默认值，
+// 全部可调参数（除消融开关，见 snowclear/ablation_switches.hpp）在此处声明默认值，
 // 由 load() 从 ParamSource 读取（ROS 2 参数 / YAML / 命令行 key:=value
 // 均可覆盖），并在程序启动时统一打印。CloudOperations 只消费本结构。
 //
@@ -124,7 +124,7 @@ struct SystemConfig {
     int block_size = 1024;
     float filter_downsampling_leaf_size = 0.06f;
 
-    // ---- 可移植性（跨传感器自标定，见 sensor_calibration.h） ----
+    // ---- 可移植性（跨传感器自标定，见 snowclear/sensor_calibration.hpp） ----
     // 这三个是**有物理含义、跨平台可直接给定**的量，取代 z/仰角三个绝对常数。
     // WADS 反推值：h_s=2.13 m 时 -h_s+1.125=-1.008(≈-1.0)、-h_s+4.725=2.592(≈2.6)、
     // -atan(h_s/5.0)=-23.11deg(≈-23.0)，三者与硬编码常数自洽（误差<1%）。

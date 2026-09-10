@@ -223,7 +223,7 @@ Known limitations, all measured — see the original audit report (see MIGRATION
 | change the threshold *shape* | `idsor_scale` / `idsor_rho` / `idsor_k` / `idsor_theta` — note that a full sweep of all six of these moves macro F1 by **≤ 0.005 pp** on the ablation subset, so this is unlikely to be where the headroom is |
 | change what counts as a surface | `zero_intensity_support_radius`, `..._min_intensity`, `..._range_floor` |
 | change the ROI | `height_threshold`, `xy_threshold`, `lowest_ring_elevation_deg` |
-| add a new feature | new switch in `ablation_switches.h`, **default off**, then extend the wire-up in `src/snow_detector.cpp` and re-derive §2 |
+| add a new feature | new switch in `include/snowclear/ablation_switches.hpp`, **default off**, then extend the wire-up in `src/snow_detector.cpp` and re-derive §2 |
 | port to a new sensor | §6 switches, then re-measure — do not assume the deltas transfer |
 
 Any change that alters detection behaviour must keep `snowclear_runner --mode all_checks` failing

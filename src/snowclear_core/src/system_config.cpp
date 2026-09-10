@@ -9,9 +9,9 @@
 namespace snowclear {
 
 // =====================================================================
-// 参数读取：全部可调参数的唯一读取入口（默认值与 system_config.h 一致）
+// 参数读取：全部可调参数的唯一读取入口（默认值与 snowclear/system_config.hpp 一致）
 // ---------------------------------------------------------------------
-// 注意：默认值必须与 system_config.h 的成员默认值、launch 文件保持一致，
+// 注意：默认值必须与 snowclear/system_config.hpp 的成员默认值、launch 文件保持一致，
 // 可用 experiment_runner 的 mode:=param_check 自动校验。
 // =====================================================================
 void SystemConfig::load(const ParamSource& params) {
@@ -62,7 +62,7 @@ void SystemConfig::load(const ParamSource& params) {
     block_size = params.get_int("block_size", 1024);
     filter_downsampling_leaf_size = params.get_float("filter_downsampling_leaf_size", 0.06f);
 
-    // ---- 可移植性（跨传感器自标定，见 sensor_calibration.h） ----
+    // ---- 可移植性（跨传感器自标定，见 snowclear/sensor_calibration.hpp） ----
     roi_clearance = params.get_float("roi_clearance", 1.125f);
     roi_top_height = params.get_float("roi_top_height", 4.725f);
     roi_lowest_beam_ground_dist = params.get_float("roi_lowest_beam_ground_dist", 5.0f);
