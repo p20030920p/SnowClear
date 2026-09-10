@@ -71,6 +71,14 @@ The pipeline below **is** the released configuration, not an idealised version o
 switches that are off, and what the fused score collapses to as a result, are stated in
 [§ What the released configuration computes](#what-the-released-configuration-actually-computes).
 
+![Algorithm 1 — SnowClear per-frame snow-point detection in the released configuration](docs/figures/algorithm1_en.png)
+
+*Fig. 0 — Algorithm 1 as shipped. Regenerate with `python3 tools/gen_algorithm_fig.py`
+(PNG + SVG, EN + ZH) rather than editing the image.*
+
+<details>
+<summary>Plain-text source of Algorithm 1 (for copying into a paper or a slide)</summary>
+
 ```text
 Algorithm 1  SnowClear: per-frame snow-point detection (released configuration)
 ────────────────────────────────────────────────────────────────────────────────────────
@@ -110,7 +118,9 @@ Output  snow index set  S ⊆ {1..N} in the *input* index space; de-snowed cloud
 29  return  S ,  P \ S
 ```
 
-Two implementation notes that the pseudocode hides:
+</details>
+
+Two implementation notes that the algorithm hides:
 
 - **Determinism under parallelism.** The per-point loop (lines 16–27) is the only
   parallelised part of the decision; each thread accumulates its own index list and the
@@ -223,7 +233,9 @@ Slot: `docs/figures/fig3_comparison.png`.*
 > upstream harnesses that are not redistributed here, and this repository does not publish
 > numbers it cannot reproduce. Run the baselines with
 > `detector_type:=dror|dsor|sor|ror` through `snowclear_runner --mode eval_folders` to fill
-> them in.
+> them in. A 4-scene subset run with this repository's own re-implementations is in
+> [`OPTIMIZATION.md`](docs/OPTIMIZATION.md) §7: SnowClear 77.56 macro F1 against DROR 7.10,
+> DSOR 6.93, SOR 36.36 and ROR 1.92.
 
 ### Table 3 — Ablation
 
@@ -237,6 +249,10 @@ Slot: `docs/figures/fig3_comparison.png`.*
 | + feature entropy (`enable_feature_entropy`) | TODO | negative | [`METHOD.md`](docs/METHOD.md) §5 |
 | + grid-search optimisation (first 3 frames) | 92.8229 | 0 | no additional gain; optimiser is a no-op |
 | + sensor-height-derived ROI (`enable_sensor_height_roi`) | TODO | changes numerics | default off by design, [`METHOD.md`](docs/METHOD.md) §6 |
+
+Measured single-switch ablation on the 4-scene subset, including the two disabled terms above:
+[`OPTIMIZATION.md`](docs/OPTIMIZATION.md) §6 (planarity −12.4 pp, density −21.2 pp, entropy
+−0.2 pp, surface suppression −2.6 pp).
 
 <!-- Fig. 4 — drop docs/figures/fig4_ablation.png in, then uncomment:
 ![Module-wise ablation of the SnowClear pipeline](docs/figures/fig4_ablation.png)
@@ -311,6 +327,28 @@ self-calibrated replacements of [`METHOD.md`](docs/METHOD.md) §6. Slot:
 *Fig. 8 — Recall ceiling imposed by the ROI gate: ground-truth snow points removed before the
 detector sees them, by scene (8.23 % over 16 scenes, 12.25 % over 1 828 frames). Slot:
 `docs/figures/fig8_gt_ceiling.png`.*
+
+### Table 7 — Where the recall is lost
+
+`tools/audit_error_budget.py --mode budget` recomputes the shipped rule in exact arithmetic and
+charges every ground-truth point to the first stage that makes it undetectable (scenes 35, 11,
+14, 16 — 406 frames):
+
+| Stage | Share of GT (per-frame macro) |
+|---|---:|
+| Removed by the ROI gate | 24.35 % |
+| Above the intensity ceiling (`s > 0.75` ⟹ `I < 0.2132·T`) | 6.67 % |
+| Vetoed as attached to a bright surface | 0.41 % |
+| **Reachable by the shipped rule** | **68.57 %** |
+
+Measured macro recall on the same frames is **68.60 %**: the rule finds essentially every
+ground-truth point it is able to accept, on every scene (35: 97.07 measured vs 97.1 reachable;
+11: 79.74 vs 79.7; 14: 53.47 vs 53.5; 16: 44.13 vs 44.1). The remaining gap is structural
+rather than algorithmic — the ground truth is bimodal in intensity (85.59 % at `I = 0`, 0.76 % in
+`1 ≤ I < 2`, 13.65 % at `I ≥ 2`), so no threshold inside the current parameterisation reaches the
+`I ≥ 2` points, and ``score_threshold`` sweeps between 0.55 and 0.75 move recall by 0.02 pp.
+[`docs/OPTIMIZATION.md`](docs/OPTIMIZATION.md) works through the consequences, the ablations and
+the prioritised next steps.
 
 **How to add a figure.** Every slot above is a commented-out image whose target path is
 `docs/figures/<name>.png`; place the file there and delete the two comment markers around
@@ -485,6 +523,7 @@ instead of a mystery at runtime.
 |---|---|
 | [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) | package layout, the two interfaces, why the split is where it is |
 | [`docs/METHOD.md`](docs/METHOD.md) | the method exactly as shipped, including disabled features |
+| [`docs/OPTIMIZATION.md`](docs/OPTIMIZATION.md) | where the remaining error is, the measured ablations and baselines, and a prioritised roadmap |
 | [`docs/figures/README.md`](docs/figures/README.md) | index of every figure slot referenced above, with its caption and source |
 | [`docs/ROS2.md`](docs/ROS2.md) | node reference: topics, QoS, parameters, launch, diagnostics |
 | [`docs/DATASET.md`](docs/DATASET.md) | data layout, ground-truth format, evaluation split |

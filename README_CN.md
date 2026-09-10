@@ -62,13 +62,21 @@ TBB，因此同一份库既能被 ROS 2 节点驱动，也能被离线 CLI 与�
 下面这段伪代码**就是**发布配置本身，而不是理想化的版本：哪些开关是关的、融合得分因此
 退化成什么，见[§ 出厂配置究竟在算什么](#出厂配置究竟在算什么)。
 
+![算法 1 —— 出厂配置下的 SnowClear 单帧雪点检测](docs/figures/algorithm1_zh.png)
+
+*图 0 —— 出厂状态的算法 1。请用 `python3 tools/gen_algorithm_fig.py` 重新生成
+（PNG + SVG，中英双版），不要直接改图。*
+
+<details>
+<summary>算法 1 的纯文本源码（便于复制到论文或幻灯片）</summary>
+
 ```text
 算法 1  SnowClear：单帧雪点检测（出厂配置）
 ────────────────────────────────────────────────────────────────────────────────────────
 输入    原始扫描  P = { p_i = (x_i, y_i, z_i, I_i) },  i = 1..N
         发布参数  Θ（score_threshold 0.75、idsor_scale 0.8、ρ 3.0、
                    k 2.15、θ 2.38、支撑 0.6 m / I>1.0 / r>7 m，…）
-输出    雪点索引集合 S ⊆ {1..N}（**输入**索引空间）；去雪后点云 P \ S
+输出    雪点索引集合 S ⊆ {1..N}（输入索引空间）；去雪后点云 P \ S
 
  1  P' ← ∅ ;  map ← ∅                              ▷ ROI 门控 + 处理后→原始索引映射
  2  for each p_i ∈ P do                            ▷ 数据并行，与顺序无关
@@ -100,6 +108,8 @@ TBB，因此同一份库既能被 ROS 2 节点驱动，也能被离线 CLI 与�
 28
 29  return  S ,  P \ S
 ```
+
+</details>
 
 伪代码没有体现的两个实现要点：
 
@@ -201,7 +211,9 @@ src/snowclear_ros/      ROS 2 层。不含任何算法。
 > [!NOTE]
 > 表中的 `TODO` 是刻意保留的：论文里基线的数字来自第三方上游实现，本仓库不重新分发它们，
 > 因此**不发布无法自行复现的数字**。用 `detector_type:=dror|dsor|sor|ror` 配合
-> `snowclear_runner --mode eval_folders` 跑一遍即可填上。
+> `snowclear_runner --mode eval_folders` 跑一遍即可填上。本仓库自实现的 4 场景子集结果见
+> [`OPTIMIZATION.md`](docs/OPTIMIZATION.md) §7：SnowClear 宏平均 F1 77.56，DROR 7.10、
+> DSOR 6.93、SOR 36.36、ROR 1.92。
 
 ### 表 3 —— 消融实验
 
@@ -215,6 +227,10 @@ src/snowclear_ros/      ROS 2 层。不含任何算法。
 | 加入特征熵（`enable_feature_entropy`） | TODO | 负贡献 | [`METHOD.md`](docs/METHOD.md) §5 |
 | 加入网格搜索优化（前 3 帧） | 92.8229 | 0 | 无额外收益；优化器是空操作 |
 | 加入安装高度导出 ROI（`enable_sensor_height_roi`） | TODO | 会改变数值 | 设计上默认关闭，[`METHOD.md`](docs/METHOD.md) §6 |
+
+4 场景子集上的单开关实测消融（含上表两个默认关闭项）见
+[`OPTIMIZATION.md`](docs/OPTIMIZATION.md) §6：平面度 −12.4 pp、密度 −21.2 pp、熵 −0.2 pp、
+表面抑制 −2.6 pp。
 
 <!-- Fig. 4 — drop docs/figures/fig4_ablation.png in, then uncomment:
 ![SnowClear 流水线的模块级消融](docs/figures/fig4_ablation.png)
@@ -285,6 +301,25 @@ src/snowclear_ros/      ROS 2 层。不含任何算法。
 -->
 *图 8 —— ROI 门控造成的召回上界：在检测器看到之前就被剔除的真值雪点，按场景给出
 （16 场景 8.23 %，1 828 帧 12.25 %）。图片位：`docs/figures/fig8_gt_ceiling.png`。*
+
+### 表 7 —— 召回损失在哪里
+
+`tools/audit_error_budget.py --mode budget` 用精确算术复算发布规则，并把每个真值点记到
+**第一个**使它无法被检出的阶段（场景 35、11、14、16，共 406 帧）：
+
+| 阶段 | 占真值的比例（逐帧宏平均） |
+|---|---:|
+| 被 ROI 门控剔除 | 24.35 % |
+| 高于强度上界（`s > 0.75` ⟹ `I < 0.2132·T`） | 6.67 % |
+| 因紧贴亮表面被否决 | 0.41 % |
+| **发布规则可达** | **68.57 %** |
+
+同一批帧上的实测宏平均召回为 **68.60 %**：凡是规则**能**接受的真值点，几乎都已被检出——
+且逐场景一致（场景 35 实测 97.07 / 可达 97.1；11：79.74 / 79.7；14：53.47 / 53.5；
+16：44.13 / 44.1）。剩余差距是**结构性的而非算法性的**：真值强度呈双峰分布
+（`I = 0` 占 85.59 %，`1 ≤ I < 2` 仅 0.76 %，`I ≥ 2` 占 13.65 %），因此当前参数化下任何阈值
+都触不到 `I ≥ 2` 的那部分；把 `score_threshold` 从 0.75 放宽到 0.55，召回只动 0.02 pp。
+后果、消融与优先级排序见 [`docs/OPTIMIZATION.md`](docs/OPTIMIZATION.md)。
 
 **如何放图。** 上述每个图片位都是一段被注释掉的图片引用，目标路径为
 `docs/figures/<name>.png`；把文件放进去、删掉 `![…]` 行前后的两个注释标记即可。
@@ -452,6 +487,7 @@ python3 tools/gen_ros2_params.py   # 从扁平配置重新生成 ROS 2 params �
 |---|---|
 | [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) | 包布局、两个接口、为什么在此处切开 |
 | [`docs/METHOD.md`](docs/METHOD.md) | 出厂配置下方法的确切行为，含被关闭的特征 |
+| [`docs/OPTIMIZATION.md`](docs/OPTIMIZATION.md) | 剩余误差在哪、实测消融与基线、优先级排序的后续优化建议 |
 | [`docs/figures/README.md`](docs/figures/README.md) | 上文全部图片位的索引、图注与复现命令 |
 | [`docs/ROS2.md`](docs/ROS2.md) | 节点参考：话题、QoS、参数、launch、诊断 |
 | [`docs/DATASET.md`](docs/DATASET.md) | 数据布局、真值格式、评测划分 |

@@ -5,6 +5,29 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Added
+
+- **`docs/OPTIMIZATION.md`** — a measured review of the released method's approach: the error
+  budget (which stage makes each ground-truth point undetectable), the intensity bimodality that
+  makes every threshold knob inert, the threshold that is pinned at its clamp in 70 % of frames,
+  baseline and single-switch ablation comparisons on a 406-frame subset, and a prioritised
+  roadmap with the experiments that would validate each item.
+- **`tools/audit_error_budget.py`** — the audit tooling [`MIGRATION_ROS1.md`](docs/MIGRATION_ROS1.md)
+  §5 recorded as never ported. Three modes (`budget`, `intensities`, `separability`) recompute
+  the shipped equations from the data without running the pipeline, so they measure the
+  *configuration's* structure rather than one execution of it.
+- **`tools/gen_algorithm_fig.py`** and `docs/figures/algorithm1_{en,zh}.{png,svg}` — Algorithm 1
+  rendered as a figure. A fenced code block inherits whatever monospace font the reader's browser
+  picks, and a CJK annotation on the same line destroys the column grid, so the algorithm is now
+  an image with a collapsed plain-text fallback.
+
+### Changed
+
+- README Table 2 and Table 3 now point at the measured 4-scene subset (baselines and
+  single-switch ablations) in `docs/OPTIMIZATION.md` §6–§7, and Results gained Table 7, the
+  measured error budget.
+- `docs/figures/README.md` indexes the rendered algorithm alongside the nine result-figure slots.
+
 ### Fixed
 
 Documentation, comments and tooling only — no behaviour change. Both byte-exact gates and all
