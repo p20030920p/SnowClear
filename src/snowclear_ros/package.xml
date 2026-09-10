@@ -1,0 +1,45 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>snowclear_ros</name>
+  <version>1.0.0</version>
+  <description>
+    ROS 2 node for SnowClear: subscribes to a sensor_msgs/PointCloud2, removes
+    snowfall-induced points and publishes the de-snowed cloud, the removed
+    points and their indices. Contains no algorithm -- all detection lives in
+    snowclear_core, which is ROS-agnostic, so the live node and the offline
+    tooling produce identical results.
+  </description>
+
+  <!-- TODO(maintainer): replace the placeholder e-mail before publishing. -->
+  <maintainer email="lyx@todo.todo">lyx</maintainer>
+
+  <!-- TODO(license): choose a license and mirror it in the repository-root
+       LICENSE file, then update this tag to match. -->
+  <license>TODO</license>
+
+  <url type="repository">https://github.com/p20030920p/SnowClear</url>
+  <url type="bugtracker">https://github.com/p20030920p/SnowClear/issues</url>
+
+  <buildtool_depend>ament_cmake</buildtool_depend>
+
+  <depend>snowclear_core</depend>
+  <depend>rclcpp</depend>
+  <depend>rclcpp_components</depend>
+  <depend>sensor_msgs</depend>
+  <depend>std_msgs</depend>
+  <depend>pcl_conversions</depend>
+  <depend>libpcl-all-dev</depend>
+
+  <exec_depend>launch</exec_depend>
+  <exec_depend>launch_ros</exec_depend>
+  <exec_depend>rviz2</exec_depend>
+
+  <test_depend>ament_cmake_gtest</test_depend>
+  <test_depend>ament_lint_auto</test_depend>
+  <test_depend>ament_lint_common</test_depend>
+
+  <export>
+    <build_type>ament_cmake</build_type>
+  </export>
+</package>

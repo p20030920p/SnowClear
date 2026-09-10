@@ -1,0 +1,2 @@
+ament_add_gtest(test_node test_node.cpp)
+target_link_libraries(test_node snowclear_node)

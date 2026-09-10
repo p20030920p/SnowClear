@@ -1,0 +1,45 @@
+# =====================================================================
+# SnowClear — what is tracked and why
+# ---------------------------------------------------------------------
+# Everything needed to build both packages, run the byte-exact regression
+# and exercise the live ROS 2 path IS tracked. Only build products,
+# datasets and scratch output are ignored.
+# =====================================================================
+
+# --------------------------------------------------- colcon / CMake output
+/build/
+/install/
+/log/
+*.o
+*.a
+*.so
+gmon.out
+perf.data*
+
+# ------------------------------------------------------------------ datasets
+# Point clouds and ground truth are not redistributable from here; see docs/DATASET.md.
+/data/
+*.pcd
+*.bag
+*.db3
+
+# ------------------------------------------------------- scratch / test output
+/tmp/
+/snowclear_output/
+testdata/*.tmp
+
+# --------------------------------------------------- Python bytecode / caches
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+*.egg-info/
+
+# ------------------------------------------------------------- Editors / OS
+.idea/
+.vscode/launch.json
+.vscode/tasks.json
+*.swp
+*~
+.DS_Store

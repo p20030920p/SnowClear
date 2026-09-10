@@ -1,0 +1,44 @@
+# TODO(authors): replace every placeholder below once the paper is public.
+# GitHub validates this file against the Citation File Format schema and renders
+# it behind the "Cite this repository" button. Keep it in sync with the BibTeX
+# block in README.md.
+
+cff-version: 1.2.0
+message: "If you use this software, please cite the accompanying paper."
+
+title: "SnowClear: real-time, training-free snow-point detection and removal for LiDAR point clouds"
+
+abstract: >-
+  SnowClear detects and removes snowfall-induced noise from mechanical spinning
+  LiDAR point clouds per point, at frame rate, on CPU, without training, GPU or
+  learned weights. The algorithm core is ROS-agnostic and ships as a library
+  with an offline CLI; a separate ROS 2 package wraps it as a point-cloud
+  node. Both paths produce bit-identical detections, which is enforced by a
+  byte-exact regression against a released reference output.
+
+authors:
+  # TODO(authors): replace with the real author list, e.g.
+  #   - family-names: "Doe"
+  #     given-names: "Jane"
+  #     orcid: "https://orcid.org/0000-0000-0000-0000"
+  - name: "TODO: author list"
+
+repository-code: "https://github.com/p20030920p/SnowClear"
+url: "https://github.com/p20030920p/SnowClear"
+
+# TODO(authors): fill in once assigned.
+# doi: "10.0000/0000000"
+version: "1.0.0"
+
+# TODO(license): must match the LICENSE file and both package.xml files.
+license: "TODO"
+
+keywords:
+  - LiDAR
+  - point cloud
+  - snowfall
+  - adverse weather
+  - denoising
+  - ROS 2
+  - autonomous driving
+  - robotics

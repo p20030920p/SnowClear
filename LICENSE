@@ -1,0 +1,22 @@
+# =====================================================================
+# LICENSE — NOT YET CHOSEN
+# ---------------------------------------------------------------------
+# This repository does not currently grant any rights: the copyright
+# holder has not selected a license yet.
+#
+# TODO(copyright holder): pick one, then
+#   1. replace this file with the full license text,
+#   2. set `license:` in CITATION.cff,
+#   3. set <license> in src/snowclear_core/package.xml and
+#      src/snowclear_ros/package.xml,
+#   4. update the license badge in README.md / README_CN.md.
+#
+# Common choices for academic research code:
+#   MIT          — most permissive, shortest, most common for paper code
+#   Apache-2.0   — MIT plus an explicit patent grant
+#   BSD-3-Clause — MIT-like with a no-endorsement clause
+#   GPL-3.0      — copyleft; blocks closed-source reuse
+#
+# Third-party components keep their own upstream terms regardless of the
+# choice made here; see the License section of README.md.
+# =====================================================================

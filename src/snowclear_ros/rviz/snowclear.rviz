@@ -1,0 +1,91 @@
+Panels:
+  - Class: rviz_common/Displays
+    Name: Displays
+    Property Tree Widget:
+      Expanded:
+        - /Snow$/1
+        - /De-snowed cloud1
+      Splitter Ratio: 0.5
+    Tree Height: 620
+  - Class: rviz_common/Views
+    Name: Views
+Visualization Manager:
+  Class: ""
+  Displays:
+    - Class: rviz_default_plugins/PointCloud2
+      Enabled: true
+      Name: Raw input
+      Topic:
+        Depth: 5
+        Durability Policy: Volatile
+        History Policy: Keep Last
+        Reliability Policy: Best Effort
+        Value: /snowclear/input/points
+      Style: Points
+      Size (Pixels): 2
+      Use Fixed Frame: true
+      Color Transformer: Intensity
+      Position Transformer: XYZ
+      Queue Size: 10
+      Alpha: 0.35
+    - Class: rviz_default_plugins/PointCloud2
+      Enabled: true
+      Name: De-snowed cloud
+      Topic:
+        Depth: 5
+        Durability Policy: Volatile
+        History Policy: Keep Last
+        Reliability Policy: Best Effort
+        Value: /snowclear/output/points
+      Style: Points
+      Size (Pixels): 2
+      Use Fixed Frame: true
+      Color Transformer: Intensity
+      Position Transformer: XYZ
+      Queue Size: 10
+      Alpha: 1
+    - Class: rviz_default_plugins/PointCloud2
+      Enabled: true
+      Name: Snow
+      Topic:
+        Depth: 5
+        Durability Policy: Volatile
+        History Policy: Keep Last
+        Reliability Policy: Best Effort
+        Value: /snowclear/output/snow_points
+      Style: Points
+      Size (Pixels): 5
+      Use Fixed Frame: true
+      # Flat red so the removed points stand out against the intensity ramp
+      # of the raw and de-snowed clouds.
+      Color Transformer: FlatColor
+      Color: 255; 40; 40
+      Position Transformer: XYZ
+      Queue Size: 10
+      Alpha: 1
+  Global Options:
+    Background Color: 25; 25; 30
+    Fixed Frame: lidar
+    Frame Rate: 30
+  Tools:
+    - Class: rviz_default_plugins/MoveCamera
+    - Class: rviz_default_plugins/Select
+    - Class: rviz_default_plugins/FocusCamera
+  Value: true
+  Views:
+    Current:
+      Class: rviz_default_plugins/Orbit
+      Distance: 40
+      Focal Point:
+        X: 0
+        Y: 0
+        Z: -1
+      Name: Current View
+      Pitch: 0.45
+      Target Frame: <Fixed Frame>
+      Yaw: 3.1
+Window Geometry:
+  Height: 900
+  Width: 1500
+  Displays:
+    collapsed: false

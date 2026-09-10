@@ -1,0 +1,36 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>snowclear_core</name>
+  <version>1.0.0</version>
+  <description>
+    Training-free, CPU-only snow-point detection and removal for mechanical
+    spinning LiDAR point clouds. This package is the algorithm itself: it
+    links against PCL, OpenMP and TBB and deliberately has no ROS dependency,
+    so it can be unit-tested and driven offline. The ROS 2 node lives in
+    snowclear_ros.
+  </description>
+
+  <!-- TODO(maintainer): replace the placeholder e-mail before publishing. -->
+  <maintainer email="lyx@todo.todo">lyx</maintainer>
+
+  <!-- TODO(license): choose a license and mirror it in the repository-root
+       LICENSE file, then update this tag to match. -->
+  <license>TODO</license>
+
+  <url type="repository">https://github.com/p20030920p/SnowClear</url>
+  <url type="bugtracker">https://github.com/p20030920p/SnowClear/issues</url>
+
+  <buildtool_depend>ament_cmake</buildtool_depend>
+
+  <depend>libpcl-all-dev</depend>
+  <depend>libtbb-dev</depend>
+  <depend>libomp-dev</depend>
+  <depend>yaml-cpp</depend>
+
+  <test_depend>ament_cmake_gtest</test_depend>
+
+  <export>
+    <build_type>ament_cmake</build_type>
+  </export>
+</package>
