@@ -139,6 +139,12 @@ emitted by the released decision function (`docs/METHOD.md` §2). Any change tha
 admissible intensity range should be evaluated on these three scenes specifically — they are
 the only scenes in the mirror where that limit actually binds.
 
+<!-- Fig. 1 (shared) — drop docs/figures/fig1_per_scene.png in, then uncomment:
+![Per-scene precision, recall and F1 across the mirrored scenes](figures/fig1_per_scene.png)
+-->
+*Fig. 1 — Per-scene precision / recall / F1, scenes 14 and 16 visibly recall-limited.
+Slot: [`figures/fig1_per_scene.png`](figures/README.md).*
+
 ---
 
 ## 4. Evaluation protocol
@@ -154,6 +160,12 @@ the only scenes in the mirror where that limit actually binds.
   hard recall ceiling: measured at 8.23 % loss over the 16-scene set and 12.25 % over all
   1 828 frames. The original audit report is not distributed with this repository; see
   [`MIGRATION_ROS1.md`](MIGRATION_ROS1.md) §5.
+
+  <!-- Fig. 8 — drop docs/figures/fig8_gt_ceiling.png in, then uncomment:
+  ![Recall ceiling imposed by the ROI gate, by scene](figures/fig8_gt_ceiling.png)
+  -->
+  *Fig. 8 — Recall ceiling imposed by the ROI gate, by scene. Slot:
+  [`figures/fig8_gt_ceiling.png`](figures/README.md).*
 * To save the detection indices for an independent audit:
 
   ```bash

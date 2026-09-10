@@ -1,17 +1,17 @@
 <div align="center">
 
-# SnowClear
+# SnowClear: Training-Free Snow-Point Detection and Removal for Spinning LiDAR via Range–Intensity Thresholding and Zero-Intensity Surface Suppression
 
-**Real-time, training-free snow-point detection and removal for LiDAR point clouds — with a ROS-agnostic core**
+**Real-time, training-free snow-point detection and removal for LiDAR point clouds — with a ROS-agnostic algorithm core**
 
 [![ROS 2](https://img.shields.io/badge/ROS%202-Jazzy-22314E?logo=ros&logoColor=white)](https://docs.ros.org/en/jazzy/)
 [![C++17](https://img.shields.io/badge/C%2B%2B-17-00599C?logo=cplusplus&logoColor=white)](https://en.cppreference.com/w/cpp/17)
 [![PCL](https://img.shields.io/badge/PCL-1.10%2B-0F9D58)](https://pointclouds.org/)
 [![Platform](https://img.shields.io/badge/platform-Linux-333333?logo=linux&logoColor=white)](#requirements)
-[![Regression](https://img.shields.io/badge/byte--exact%20regression-passing-success)](#verification)
+[![Regression](https://img.shields.io/badge/byte--exact%20regression-passing-success)](#reproducibility)
 [![License](https://img.shields.io/badge/license-TODO-lightgrey)](LICENSE)
 
-[Architecture](#architecture) &nbsp;•&nbsp; [Quick start](#quick-start) &nbsp;•&nbsp; [ROS 2 usage](#ros-2-usage) &nbsp;•&nbsp; [Verification](#verification) &nbsp;•&nbsp; [Citation](#citation)
+[Method](#method) &nbsp;•&nbsp; [Results](#results) &nbsp;•&nbsp; [Reproducibility](#reproducibility) &nbsp;•&nbsp; [Quick start](#quick-start) &nbsp;•&nbsp; [ROS 2 usage](#ros-2-usage) &nbsp;•&nbsp; [Citation](#citation)
 
 *English &nbsp;|&nbsp; [中文](README_CN.md)*
 
@@ -19,10 +19,19 @@
 
 ---
 
+## Summary
+
 SnowClear removes snowfall-induced noise from mechanical spinning LiDAR scans **per point**,
 at frame rate, on CPU, with **no training, no GPU and no learned weights**. Given a point
 cloud it returns the de-snowed cloud and the indices of the points classified as snow, in the
 coordinate frame and index space of the *original* input.
+
+The method combines three ingredients: a **smooth range–intensity threshold** whose
+distance dependence is a Gamma-shaped fit to the weather-particle range distribution, a
+**per-point intensity score** fused with a normalised height-above-ground term, and a
+**zero-intensity surface veto** that rejects points sitting on a bright surface — the dominant
+false-positive source. Every stage is deterministic and parallel-safe, so the detection set
+does not depend on the thread count.
 
 The design constraint that shapes this repository: **the algorithm must not depend on a
 middleware**. The detection code links only PCL, OpenMP and TBB, so the same library is
@@ -54,30 +63,98 @@ produce identical output.
 
 ---
 
-## Architecture
+## Method
+
+### Algorithm 1 — per-frame detection
+
+The pipeline below **is** the released configuration, not an idealised version of it: the
+switches that are off, and what the fused score collapses to as a result, are stated in
+[§ What the released configuration computes](#what-the-released-configuration-actually-computes).
+
+```text
+Algorithm 1  SnowClear: per-frame snow-point detection (released configuration)
+────────────────────────────────────────────────────────────────────────────────────────
+Input   raw scan  P = { p_i = (x_i, y_i, z_i, I_i) },  i = 1..N
+        released parameters Θ  (score_threshold 0.75, idsor_scale 0.8, ρ 3.0,
+                                k 2.15, θ 2.38, support 0.6 m / I>1.0 / r>7 m, …)
+Output  snow index set  S ⊆ {1..N} in the *input* index space; de-snowed cloud P \ S
+
+ 1  P' ← ∅ ;  map ← ∅                              ▷ ROI gate + processed→original index map
+ 2  for each p_i ∈ P do                            ▷ data-parallel, order-independent
+ 3      if  z_i ∈ [−1.0, 2.6]  ∧  x_i² + y_i² ≤ 17²
+ 4          ∧  asin(z_i / ‖p_i‖) ≥ −23°  then
+ 5          append p_i to P' ;  map(|P'|) ← i
+ 6
+ 7  H  ← 256-bin intensity histogram of P'         ▷ per-thread histograms, summed as integers
+ 8  Q1 ← first bin with CDF(H) ≥ 0.25·|P'|
+ 9  Tg ← clamp(0.8·Q1, 2.5, 8.0)
+10  build α-LUT over r ∈ [0, 40] m at 1 cm:        ▷ Γ(2.15) is constant per frame → hoisted
+11      α(r) ← ρ·f(r) / (ρ·f(r) + 1),   f(r) = Gamma_pdf(r; k = 2.15, θ = 2.38)
+12  ground ← 10th percentile of z per 1 m × 1 m cell (≥ 5 points; else global min z)
+13  G  ← spatial hash of support points { p ∈ P' : I > 1.0 }, cell size 0.6 m
+14
+15  S ← ∅
+16  for each p_j = (x, y, z, I) ∈ P' do            ▷ data-parallel; per-thread results sorted
+17      r ← √(x² + y²) ;   h ← 1 − min(1, I/255)
+18      T ← clamp( 0.8 · Tg · (1 − α(r)·h), 2.0, 20.0 )      ▷ smooth range–intensity threshold
+19      if  I ≥ 1.2·T  then continue                          ▷ early stop
+20      s ← ( I < T ) ? (1 − I/T)^1.2 : 0                     ▷ intensity score
+21      if  I ≤ 0.5·I_min  ∧  r > 7  ∧  ∃ support point within 0.6 m of p_j in G
+22          then continue                                     ▷ zero-intensity surface veto
+23      if  s < 0.25  then continue                           ▷ pre-filter
+24      hag ← clamp( (z − ground(cell(x, y))) / 1.5, 0, 1 )   ▷ height above local ground
+25      C ← 0.7·s + 0.15·hag                                  ▷ fused score, released configuration
+26      θ ← 0.75 ;  if s < 0.4 then θ ← 0.90 else if s > 0.7 then θ ← 0.675
+27      if  C > θ  ∧  s > 0.3  then  S ← S ∪ { map(j) }
+28
+29  return  S ,  P \ S
+```
+
+Two implementation notes that the pseudocode hides:
+
+- **Determinism under parallelism.** The per-point loop (lines 16–27) is the only
+  parallelised part of the decision; each thread accumulates its own index list and the
+  lists are concatenated, sorted and de-duplicated. Integer histogram accumulation (line 7)
+  makes the scene statistics thread-count-independent too. A unit test asserts that the
+  serial and OpenMP paths return the same set bit for bit.
+- **Index space.** The detector only ever sees `P'`. Indices are mapped back to the input at
+  line 27, so a caller can index its own cloud; the mapping also carries exact-duplicate
+  group expansion for the (disabled by default) de-duplication path.
+
+### What the released configuration actually computes
+
+> [!IMPORTANT]
+> Several features the accompanying paper describes are **switched off** in the released
+> configuration, and the fused score has consequently collapsed to two terms:
+>
+> - `weight_sum` is `0.35 + 0.15 = 0.50`, so line 25 evaluates to `0.7·s + 0.15·hag`. The
+>   height term can contribute **at most 0.15** against a threshold of 0.675–0.90.
+> - One consequence: **no point with `I ≥ 2` can ever be classified as snow** under these
+>   parameters, because detection requires `s > 0.75`, i.e. `I/T < 0.2132`, and `T ≤ 6.4` in
+>   every frame. Two of the three evaluation scenes outside the reported set are
+>   recall-limited by exactly this bound.
+> - The parameter optimiser is a **no-op**: both optimisation switches are off, so
+>   `ParameterOptimizer::optimize()` returns the defaults immediately (measured cost:
+>   0.0001 ms per frame). Grid search, feature-based recommendation, planarity, density,
+>   entropy, height consistency, isolated-point handling and pre-downsampling are all
+>   disabled.
+>
+> [`docs/METHOD.md`](docs/METHOD.md) writes the decision function down as shipped, with the
+> measurements behind each disabled switch. Read it before tuning a parameter, and before
+> citing a module the released configuration never enables.
+
+### The middleware-free seam
 
 Two `ament` packages, split by dependency rather than by convenience:
 
 ```text
-SnowClear/
-├── src/
-│   ├── snowclear_core/        # the algorithm. PCL + OpenMP + TBB. NO ROS.
-│   │   ├── include/snowclear/ # public headers, namespace snowclear
-│   │   ├── src/               # preprocessor, features, detector, evaluator, calibration
-│   │   ├── apps/              # snowclear_cli, snowclear_runner (offline, ROS-free)
-│   │   └── test/              # gtest: config, parameter plumbing, decision-function invariants
-│   └── snowclear_ros/         # the ROS 2 layer. No algorithm.
-│       ├── src/               # rclcpp node + composable-node registration
-│       ├── launch/            # snowclear.launch.py
-│       ├── config/            # released parameters (flat + ROS 2 views)
-│       ├── rviz/              # three-cloud layout
-│       ├── scripts/           # scan_to_cloud.py — replay a PCD as PointCloud2
-│       └── test/              # node wiring tests + live_check.py
-├── tools/                     # generators that keep the config views in sync
-└── docs/
+src/snowclear_core/     the algorithm.  PCL + OpenMP + TBB.  NO ROS.
+                        + offline CLI and experiment runner, + unit tests
+src/snowclear_ros/      the ROS 2 layer.  No algorithm.
+                        + launch, config, RViz, PCD replay, node wiring tests
 ```
 
-The seam between them is two small interfaces:
+Only two things cross the boundary, and neither has a ROS type in its signature:
 
 | Interface | Purpose | Implementations |
 |---|---|---|
@@ -86,41 +163,193 @@ The seam between them is two small interfaces:
 
 Everything numeric lives below that seam. That is why the offline and live paths cannot
 drift: they are the same code, differing only in where a string comes from and where a line
-of log output goes.
+of log output goes. Package layout, the threading model and the generated-artefact design are
+in [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
 
-### Pipeline
+---
+
+## Results
+
+**Conditions.** Release build, `OMP_NUM_THREADS=2`, `OMP_DYNAMIC=false`, I/O and evaluation
+excluded from the per-frame time. Ground truth is a per-frame list of snow-point indices.
+The evaluation set is 16 scenes / 1 620 frames of the
+[Winter Adverse Driving dataSet (WADS)][wads]; point clouds are not redistributable and are
+not shipped — see [`docs/DATASET.md`](docs/DATASET.md).
+
+[wads]: https://digitalcommons.mtu.edu/wads/
+
+### Table 1 — Detection quality and latency on the reported set
+
+| Protocol | Precision | Recall | F1 | ms / frame |
+|---|---:|---:|---:|---:|
+| **Macro average — 16 scenes, 1 620 frames** | **96.6934** | **89.9765** | **92.8229** | **≈ 10** |
+| F1 recomputed from the mean P / R | — | — | 93.2141 | — |
+| Pooled over 1 620 frames | 96.8927 | 88.7047 | 92.6181 | — |
+
+<!-- Fig. 1 — drop docs/figures/fig1_per_scene.png in, then uncomment:
+![Per-scene precision, recall and F1](docs/figures/fig1_per_scene.png)
+-->
+*Fig. 1 — Per-scene precision / recall / F1 across the 19 mirrored scenes, with the 16-scene
+reported set marked. Slot: `docs/figures/fig1_per_scene.png`.*
+
+<!-- Fig. 2 — drop docs/figures/fig2_qualitative.png in, then uncomment:
+![Qualitative result: raw scan, de-snowed cloud, removed points](docs/figures/fig2_qualitative.png)
+-->
+*Fig. 2 — Qualitative result on the reference frame `042126`: raw scan, de-snowed cloud, and
+the 6 957 removed points (the view the shipped RViz layout reproduces). Slot:
+`docs/figures/fig2_qualitative.png`.*
+
+### Table 2 — Comparison with non-learned baselines
+
+The baselines are compiled into the core and share the identical ROI gate, index mapping and
+evaluation path, so the comparison isolates the decision rule rather than the plumbing.
+
+| Method | Precision | Recall | F1 | ms / frame |
+|---|---:|---:|---:|---:|
+| DROR (Charron et al., CRV 2018) | TODO | TODO | TODO | TODO |
+| DSOR (Kurup & Bos, 2021) | TODO | TODO | TODO | TODO |
+| SOR (Rusu et al., 2008) | TODO | TODO | TODO | TODO |
+| ROR (Rusu, 2009) | TODO | TODO | TODO | TODO |
+| **SnowClear (released configuration)** | **96.6934** | **89.9765** | **92.8229** | **≈ 10** |
+
+<!-- Fig. 3 — drop docs/figures/fig3_comparison.png in, then uncomment:
+![Precision, recall and F1 of SnowClear against DROR, DSOR, SOR and ROR](docs/figures/fig3_comparison.png)
+-->
+*Fig. 3 — Precision / recall / F1 of SnowClear against the non-learned baselines of Table 2.
+Slot: `docs/figures/fig3_comparison.png`.*
+
+> [!NOTE]
+> The `TODO` cells are deliberate: the paper's baseline numbers come from third-party
+> upstream harnesses that are not redistributed here, and this repository does not publish
+> numbers it cannot reproduce. Run the baselines with
+> `detector_type:=dror|dsor|sor|ror` through `snowclear_runner --mode eval_folders` to fill
+> them in.
+
+### Table 3 — Ablation
+
+| Configuration | Macro F1 | Δ F1 | Source |
+|---|---:|---:|---|
+| **Released configuration (full)** | **92.8229** | — | Table 1 |
+| w/o zero-intensity surface suppression | TODO | **≈ −2.2 pp** | measured *delta*, [`METHOD.md`](docs/METHOD.md) §4 |
+| ROI gate + `I = 0` only (no threshold, no score, no height term) | 90.12 | −2.70 pp (derived) | measured, [`METHOD.md`](docs/METHOD.md) §2 |
+| + planarity term (`enable_planarity_calculation`) | TODO | ≈ 0 | measured ≈ 0 on 100 frames, [`METHOD.md`](docs/METHOD.md) §5 |
+| + density term (`enable_density_calculation`) | TODO | negative | [`METHOD.md`](docs/METHOD.md) §5 |
+| + feature entropy (`enable_feature_entropy`) | TODO | negative | [`METHOD.md`](docs/METHOD.md) §5 |
+| + grid-search optimisation (first 3 frames) | 92.8229 | 0 | no additional gain; optimiser is a no-op |
+| + sensor-height-derived ROI (`enable_sensor_height_roi`) | TODO | changes numerics | default off by design, [`METHOD.md`](docs/METHOD.md) §6 |
+
+<!-- Fig. 4 — drop docs/figures/fig4_ablation.png in, then uncomment:
+![Module-wise ablation of the SnowClear pipeline](docs/figures/fig4_ablation.png)
+-->
+*Fig. 4 — Module-wise ablation: macro-F1 delta for each switch, with the ROI-plus-`I=0`
+trivial baseline drawn as the reference line. Slot: `docs/figures/fig4_ablation.png`.*
+
+<!-- Fig. 5 — drop docs/figures/fig5_acceptance.png in, then uncomment:
+![Acceptance region of the released decision function](docs/figures/fig5_acceptance.png)
+-->
+*Fig. 5 — Acceptance region of the released decision function in the `(I/T, h_ag)` plane,
+showing the `s > 0.75` requirement and the resulting `I < 1.36` ceiling. Slot:
+`docs/figures/fig5_acceptance.png`.*
+
+### Table 4 — The three evaluation scenes outside the reported set
+
+They are reported separately rather than dropped, because they bound where the method is
+weak (see [`docs/DATASET.md`](docs/DATASET.md) §3).
+
+| Scene | Frames | Precision | Recall | F1 |
+|---|---:|---:|---:|---:|
+| 14 | 101 | 93.96 | 53.47 | 67.34 |
+| 16 | 102 | 95.82 | 44.13 | 59.74 |
+| 76 | 5 | 97.85 | 98.84 | 98.34 |
+| All 19 scenes, macro average | 1 828 | 96.5654 | 85.4256 | 90.0295 |
+
+Scenes 14 and 16 are **recall-limited** by the intensity ceiling of the released decision
+function, not by over-detection: precision stays at 94–96 % while recall halves.
+
+### Table 5 — Where the frame time goes
+
+Measured on scene 35 (101 frames, `OMP_NUM_THREADS=2`), per frame:
+
+| Stage (per frame) | ms | Source / note |
+|---|---:|---|
+| Ground-truth load + parse | 0.57 | charged to I/O, not to algorithm time |
+| Scene statistics + feature analysis (lines 7–13) | 4.18 | histogram, ground grid, support hash |
+| Parameter optimisation (line 22) | **0.0001** | returns the defaults immediately |
+| `α(r)` threshold LUT, replacing per-point `tgamma`/`pow` | 1.140 → 0.179 | 1 cm table, 4 001 entries, built once per frame |
+| Elevation gate, fast path replacing `asin` per point | 1.816 → 1.166 | −36 % on the pre-ROI cloud, ≈ 20万点/帧 |
+| ROI gate total / per-point decision total | TODO | fill from `verbose:=true` |
+| **End-to-end, per frame** | **≈ 10** | Table 1 |
+
+<!-- Fig. 6 — drop docs/figures/fig6_runtime.png in, then uncomment:
+![Per-stage frame-time breakdown](docs/figures/fig6_runtime.png)
+-->
+*Fig. 6 — Per-stage frame-time breakdown, with the measured before/after of the two
+equivalence-preserving optimisations (elevation gate, `α(r)` LUT). Slot:
+`docs/figures/fig6_runtime.png`.*
+
+### Table 6 — Robustness to sensor change
+
+The released configuration contains four platform-dependent absolute constants. Changing the
+platform without re-deriving them is a documented failure mode, not a hypothetical one.
+
+| Perturbation | Released configuration | Self-calibrated switches on |
+|---|---:|---:|
+| Reference sensor (WADS, 64-beam) | 92.92 F1 | 92.92 F1 (`δ_I = 1.0`, identical) |
+| Mounting height + 0.9 m | 68.56 F1 (−24.36 pp) | TODO |
+| CADC (VLP-32C, `intensity` normalised to 0…1) | 90.16 % of ROI points classified as snow | TODO |
+
+<!-- Fig. 7 — drop docs/figures/fig7_cross_sensor.png in, then uncomment:
+![Cross-sensor robustness of the released constants and the self-calibrated replacements](docs/figures/fig7_cross_sensor.png)
+-->
+*Fig. 7 — Cross-sensor robustness: released absolute constants versus the label-free
+self-calibrated replacements of [`METHOD.md`](docs/METHOD.md) §6. Slot:
+`docs/figures/fig7_cross_sensor.png`.*
+
+<!-- Fig. 8 — drop docs/figures/fig8_gt_ceiling.png in, then uncomment:
+![Recall ceiling imposed by the ROI gate](docs/figures/fig8_gt_ceiling.png)
+-->
+*Fig. 8 — Recall ceiling imposed by the ROI gate: ground-truth snow points removed before the
+detector sees them, by scene (8.23 % over 16 scenes, 12.25 % over 1 828 frames). Slot:
+`docs/figures/fig8_gt_ceiling.png`.*
+
+**How to add a figure.** Every slot above is a commented-out image whose target path is
+`docs/figures/<name>.png`; place the file there and delete the two comment markers around
+the `![…]` line. [`docs/figures/README.md`](docs/figures/README.md) indexes all slots with
+their captions and the command that regenerates the data behind each one.
+
+---
+
+## Reproducibility
+
+Three gates, in increasing scope. All three are cheap; run all three before quoting a number.
+
+| Gate | Command | What it proves |
+|---|---|---|
+| 1. Unit tests | `colcon test --packages-select snowclear_core snowclear_ros` | config defaults, parameter plumbing, and the documented decision-function invariants (e.g. `I ≥ 2` is never snow, OpenMP ≡ serial) |
+| 2. Offline byte-exact | `snowclear_runner --mode all_checks …` | the rebuild reproduces the released reference output **byte for byte** |
+| 3. Live byte-exact | `python3 src/snowclear_ros/test/live_check.py …` | the ROS 2 message path emits the **same indices** as the offline build |
+
+`tools/verify.sh` runs all five steps (clean build, both generators, both test suites, both
+byte-exact gates) in one go; point `SNOWCLEAR_DATA` at a WADS mirror first.
+
+Gate 2 output:
 
 ```text
-                 sensor_msgs/PointCloud2                  (ROS 2)
-                          │
-                   pcl::fromROSMsg
-                          │
-  raw point cloud ────────┴────────────────────────────────────────
-        │
-   ┌────▼─────────────┐  ROI gate: z, horizontal range, lowest-ring
-   │  preprocessor    │  elevation → removes ~73 % of points
-   └────┬─────────────┘
-   ┌────▼─────────────┐  intensity histogram → Q1; 1 m local ground grid
-   │ feature_extractor│
-   └────┬─────────────┘
-   ┌────▼─────────────┐  T(r, I) = s·Tg·(1 − α(r)·h(I)), α from a Gamma
-   │ range–intensity  │  fit, LUT-cached per frame
-   │ threshold        │
-   └────┬─────────────┘
-   ┌────▼─────────────┐  intensity score + relative height → local
-   │  snow_detector   │  threshold; I≈0 attached to a bright surface is
-   └────┬─────────────┘  vetoed (the dominant false-positive source)
-   ┌────▼─────────────┐  processed index → original index
-   │ index mapping    │
-   └────┬─────────────┘
-        │
-  de-snowed cloud + snow indices ────► PointCloud2 trips            (ROS 2)
+[OK] 配置一致 (104 个键, 校验 104 个, 生效参数 109 个)
+[OK] 检测输出与参考逐字节一致 ("reference_042126.txt", 6957 行)
 ```
 
-The decision function **as shipped**, including which features are disabled in the released
-configuration, is written down in [`docs/METHOD.md`](docs/METHOD.md). Read it before changing
-a parameter: the fused score collapses to `0.7·S + 0.15·hag`, and one consequence is that
-**no point with intensity ≥ 2 can ever be classified as snow** under the released settings.
+Gate 3 output (node running, one replay):
+
+```text
+输入 042126.pcd: 208504 点
+参考 reference_042126.txt: 6957 个雪点索引
+发现订阅者，开始发送
+[OK] ROS 2 在线路径与参考逐位一致（6957 个索引）
+```
+
+Any change that can alter detection must move gate 2 from passing to failing; the rules for
+that are in [`CONTRIBUTING.md`](CONTRIBUTING.md).
 
 ---
 
@@ -233,50 +462,6 @@ export ROS_LOCALHOST_ONLY=1     # or ROS_AUTOMATIC_DISCOVERY_RANGE=LOCALHOST
 
 ---
 
-## Verification
-
-Three gates, in increasing scope. All three are cheap; run all three before quoting a number.
-
-| Gate | Command | What it proves |
-|---|---|---|
-| 1. Unit tests | `colcon test --packages-select snowclear_core snowclear_ros` | config defaults, parameter plumbing, and the documented decision-function invariants (e.g. `I ≥ 2` is never snow, OpenMP ≡ serial) |
-| 2. Offline byte-exact | `snowclear_runner --mode all_checks …` | the rebuild reproduces the released reference output **byte for byte** |
-| 3. Live byte-exact | `python3 src/snowclear_ros/test/live_check.py …` | the ROS 2 message path emits the **same indices** as the offline build |
-
-Gate 2 output:
-
-```text
-[OK] 配置一致 (104 个键, 校验 104 个, 生效参数 109 个)
-[OK] 检测输出与参考逐字节一致 ("reference_042126.txt", 6957 行)
-```
-
-Gate 3 output (node running, one replay):
-
-```text
-输入 042126.pcd: 208504 点
-参考 reference_042126.txt: 6957 个雪点索引
-发现订阅者，开始发送
-[OK] ROS 2 在线路径与参考逐位一致（6957 个索引）
-```
-
-### Results
-
-Ground truth: per-frame snow-point index lists. Reference conditions: Release build,
-`OMP_NUM_THREADS=2`, `OMP_DYNAMIC=false`, excluding I/O and evaluation.
-
-| Protocol | Precision | Recall | F1 |
-|---|---:|---:|---:|
-| **Macro average — 16 scenes, 1 620 frames** | **96.6934** | **89.9765** | **92.8229** |
-| F1 recomputed from the mean P / R | — | — | 93.2141 |
-| Pooled over 1 620 frames | 96.8927 | 88.7047 | **92.6181** |
-| Reference machine, per frame | — | — | ≈ 10 ms |
-
-> [!NOTE]
-> The evaluation set contains three further scenes that are reported separately rather than
-> dropped — including two that are recall-limited. See [`docs/DATASET.md`](docs/DATASET.md).
-
----
-
 ## Configuration is generated, not hand-maintained
 
 The same configuration is needed in three shapes: the corpus that the algorithm reads, a flat
@@ -300,6 +485,7 @@ instead of a mystery at runtime.
 |---|---|
 | [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) | package layout, the two interfaces, why the split is where it is |
 | [`docs/METHOD.md`](docs/METHOD.md) | the method exactly as shipped, including disabled features |
+| [`docs/figures/README.md`](docs/figures/README.md) | index of every figure slot referenced above, with its caption and source |
 | [`docs/ROS2.md`](docs/ROS2.md) | node reference: topics, QoS, parameters, launch, diagnostics |
 | [`docs/DATASET.md`](docs/DATASET.md) | data layout, ground-truth format, evaluation split |
 | [`docs/MIGRATION_ROS1.md`](docs/MIGRATION_ROS1.md) | what changed from the ROS 1 / catkin version |
@@ -312,7 +498,8 @@ instead of a mystery at runtime.
 
 ```bibtex
 @article{snowclear,
-  title   = {TODO: paper title},
+  title   = {SnowClear: Training-Free Snow-Point Detection and Removal for Spinning LiDAR
+             via Range--Intensity Thresholding and Zero-Intensity Surface Suppression},
   author  = {TODO: authors},
   journal = {TODO: venue},
   year    = {TODO: year},

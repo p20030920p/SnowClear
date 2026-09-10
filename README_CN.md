@@ -1,17 +1,17 @@
 <div align="center">
 
-# SnowClear
+# SnowClear：基于距离–强度阈值与零强度表面抑制的旋转式 LiDAR 免训练雪点检测与去除
 
-**实时、免训练的 LiDAR 雪点检测与去除 —— 算法核不依赖任何中间件**
+**实时、免训练的 LiDAR 点云雪点检测与去除 —— 算法核不依赖任何中间件**
 
 [![ROS 2](https://img.shields.io/badge/ROS%202-Jazzy-22314E?logo=ros&logoColor=white)](https://docs.ros.org/en/jazzy/)
 [![C++17](https://img.shields.io/badge/C%2B%2B-17-00599C?logo=cplusplus&logoColor=white)](https://en.cppreference.com/w/cpp/17)
 [![PCL](https://img.shields.io/badge/PCL-1.10%2B-0F9D58)](https://pointclouds.org/)
 [![平台](https://img.shields.io/badge/platform-Linux-333333?logo=linux&logoColor=white)](#环境要求)
-[![回归](https://img.shields.io/badge/%E9%80%90%E5%AD%97%E8%8A%82%E5%9B%9E%E5%BD%92-%E9%80%9A%E8%BF%87-success)](#验证)
+[![回归](https://img.shields.io/badge/%E9%80%90%E5%AD%97%E8%8A%82%E5%9B%9E%E5%BD%92-%E9%80%9A%E8%BF%87-success)](#可复现性)
 [![许可证](https://img.shields.io/badge/license-TODO-lightgrey)](LICENSE)
 
-[架构](#架构) &nbsp;•&nbsp; [快速开始](#快速开始) &nbsp;•&nbsp; [ROS 2 使用](#ros-2-使用) &nbsp;•&nbsp; [验证](#验证) &nbsp;•&nbsp; [引用](#引用)
+[方法](#方法) &nbsp;•&nbsp; [实验结果](#实验结果) &nbsp;•&nbsp; [可复现性](#可复现性) &nbsp;•&nbsp; [快速开始](#快速开始) &nbsp;•&nbsp; [ROS 2 使用](#ros-2-使用) &nbsp;•&nbsp; [引用](#引用)
 
 *[English](README.md) &nbsp;|&nbsp; 中文*
 
@@ -19,9 +19,15 @@
 
 ---
 
+## 摘要
+
 SnowClear 面向机械旋转式 LiDAR，**逐点**检测并去除降雪噪声：帧率级速度、纯 CPU、
 **无需训练、无需 GPU、无任何学习权重**。输入一帧点云，输出 (i) 去雪后的点云和
 (ii) 被判为雪点的索引——索引位于**原始输入点云**的坐标系与索引空间中。
+
+方法由三个要素组成：**平滑的距离–强度阈值**（其距离依赖项是对天气粒子距离分布的
+Gamma 拟合）、**逐点强度得分**与归一化离地高度项的融合，以及**零强度表面抑制**——
+否决紧贴亮表面的点，这是误检的主要来源。各阶段均为确定性且并行安全，检测集合不随线程数变化。
 
 塑造本仓库结构的那条约束是：**算法不得依赖中间件**。检测代码只链接 PCL、OpenMP 与
 TBB，因此同一份库既能被 ROS 2 节点驱动，也能被离线 CLI 与单元测试驱动——并且三者
@@ -49,30 +55,89 @@ TBB，因此同一份库既能被 ROS 2 节点驱动，也能被离线 CLI 与�
 
 ---
 
-## 架构
+## 方法
+
+### 算法 1 —— 单帧检测
+
+下面这段伪代码**就是**发布配置本身，而不是理想化的版本：哪些开关是关的、融合得分因此
+退化成什么，见[§ 出厂配置究竟在算什么](#出厂配置究竟在算什么)。
+
+```text
+算法 1  SnowClear：单帧雪点检测（出厂配置）
+────────────────────────────────────────────────────────────────────────────────────────
+输入    原始扫描  P = { p_i = (x_i, y_i, z_i, I_i) },  i = 1..N
+        发布参数  Θ（score_threshold 0.75、idsor_scale 0.8、ρ 3.0、
+                   k 2.15、θ 2.38、支撑 0.6 m / I>1.0 / r>7 m，…）
+输出    雪点索引集合 S ⊆ {1..N}（**输入**索引空间）；去雪后点云 P \ S
+
+ 1  P' ← ∅ ;  map ← ∅                              ▷ ROI 门控 + 处理后→原始索引映射
+ 2  for each p_i ∈ P do                            ▷ 数据并行，与顺序无关
+ 3      if  z_i ∈ [−1.0, 2.6]  ∧  x_i² + y_i² ≤ 17²
+ 4          ∧  asin(z_i / ‖p_i‖) ≥ −23°  then
+ 5          append p_i to P' ;  map(|P'|) ← i
+ 6
+ 7  H  ← P' 的 256 级强度直方图                     ▷ 每线程局部直方图，按整数求和
+ 8  Q1 ← CDF(H) 首次 ≥ 0.25·|P'| 的分箱
+ 9  Tg ← clamp(0.8·Q1, 2.5, 8.0)
+10  在 r ∈ [0, 40] m 上以 1 cm 步长建 α 查表:        ▷ Γ(2.15) 是帧常量，提到循环外
+11      α(r) ← ρ·f(r) / (ρ·f(r) + 1),   f(r) = Gamma_pdf(r; k = 2.15, θ = 2.38)
+12  ground ← 1 m × 1 m 网格内 z 的第 10 百分位（格内 ≥ 5 点；否则取全局最小 z）
+13  G  ← 支撑点 { p ∈ P' : I > 1.0 } 的空间哈希，cell = 0.6 m
+14
+15  S ← ∅
+16  for each p_j = (x, y, z, I) ∈ P' do            ▷ 数据并行；各线程结果合并后排序
+17      r ← √(x² + y²) ;   h ← 1 − min(1, I/255)
+18      T ← clamp( 0.8 · Tg · (1 − α(r)·h), 2.0, 20.0 )      ▷ 平滑距离–强度阈值
+19      if  I ≥ 1.2·T  then continue                          ▷ 早停
+20      s ← ( I < T ) ? (1 − I/T)^1.2 : 0                     ▷ 强度得分
+21      if  I ≤ 0.5·I_min  ∧  r > 7  ∧  G 中存在距 p_j 0.6 m 内的支撑点
+22          then continue                                     ▷ 零强度表面抑制
+23      if  s < 0.25  then continue                           ▷ 预筛
+24      hag ← clamp( (z − ground(cell(x, y))) / 1.5, 0, 1 )   ▷ 归一化离地高度
+25      C ← 0.7·s + 0.15·hag                                  ▷ 融合得分（发布配置）
+26      θ ← 0.75 ;  if s < 0.4 then θ ← 0.90 else if s > 0.7 then θ ← 0.675
+27      if  C > θ  ∧  s > 0.3  then  S ← S ∪ { map(j) }
+28
+29  return  S ,  P \ S
+```
+
+伪代码没有体现的两个实现要点：
+
+- **并行下的确定性。** 只有逐点循环（第 16–27 行）被并行化，每线程各自累积索引、最后
+  拼接并排序去重；直方图累加（第 7 行）用整数，使场景统计同样与线程数无关。单元测试断言
+  串行与 OpenMP 路径返回**逐位相同**的集合。
+- **索引空间。** 检测器只看到 `P'`，在第 27 行映射回输入索引，因此调用方可以直接索引
+  自己的点云；该映射同时承载（默认关闭的）去重路径所需的精确重复点分组展开。
+
+### 出厂配置究竟在算什么
+
+> [!IMPORTANT]
+> 论文里描述的若干特征在**发布配置中是关闭的**，融合得分因此退化为两项：
+>
+> - `weight_sum` 为 `0.35 + 0.15 = 0.50`，故第 25 行实际计算 `0.7·s + 0.15·hag`。高度项
+>   最多只能贡献 **0.15**，而阈值是 0.675–0.90。
+> - 由此可推出：这些参数下**强度 `I ≥ 2` 的点结构上不可能被判为雪**——判定要求
+>   `s > 0.75`，即 `I/T < 0.2132`，而任何一帧都有 `T ≤ 6.4`。报告集之外的三个评测场景里
+>   有两个正是被这条边界限制住召回的。
+> - **参数优化是空操作**：两个优化开关都关，`ParameterOptimizer::optimize()` 直接返回默认值
+>   （实测耗时 0.0001 ms/帧）。网格搜索、特征推荐、平面度、密度、熵、高度一致性、
+>   孤立点处理与预降采样全部关闭。
+>
+> [`docs/METHOD.md`](docs/METHOD.md) 逐条写下了出厂状态下的判定函数，以及每个关闭开关背后
+> 的实测依据。改任何参数之前请先读它，引用任何模块之前也请先确认它在发布配置里是否真的启用。
+
+### 与中间件解耦的接缝
 
 两个 `ament` 包，按**依赖**而不是按方便程度切分：
 
 ```text
-SnowClear/
-├── src/
-│   ├── snowclear_core/        # 算法本体。PCL + OpenMP + TBB，无 ROS。
-│   │   ├── include/snowclear/ # 公开头文件，命名空间 snowclear
-│   │   ├── src/               # 预处理 / 特征 / 检测 / 评估 / 自标定
-│   │   ├── apps/              # snowclear_cli、snowclear_runner（离线，无 ROS）
-│   │   └── test/              # gtest：配置、参数通路、判定函数不变量
-│   └── snowclear_ros/         # ROS 2 层。不含任何算法。
-│       ├── src/               # rclcpp 节点 + 可组合节点注册
-│       ├── launch/            # snowclear.launch.py
-│       ├── config/            # 发布参数（扁平视图 + ROS 2 视图）
-│       ├── rviz/              # 三层点云布局
-│       ├── scripts/           # scan_to_cloud.py —— 把 PCD 当 PointCloud2 回放
-│       └── test/              # 节点接线测试 + live_check.py
-├── tools/                     # 保持各参数视图同步的生成脚本
-└── docs/
+src/snowclear_core/     算法本体。PCL + OpenMP + TBB，无 ROS。
+                        + 离线 CLI 与实验运行器，+ 单元测试
+src/snowclear_ros/      ROS 2 层。不含任何算法。
+                        + launch、配置、RViz、PCD 回放、节点接线测试
 ```
 
-两者之间的接缝只有两个小接口：
+跨越边界的只有两样东西，且签名里都没有 ROS 类型：
 
 | 接口 | 作用 | 实现 |
 |---|---|---|
@@ -80,39 +145,185 @@ SnowClear/
 | `snowclear::set_log_sink()` | 日志往哪去 | 默认 stdout/stderr，节点里走 `RCLCPP_*` |
 
 所有数值逻辑都在接缝之下。这就是在线与离线路径不可能漂移的原因：它们是同一份代码，
-差别只在于"一个字符串从哪来"和"一行日志往哪去"。
+差别只在于"一个字符串从哪来"和"一行日志往哪去"。包布局、线程模型与生成式配置的设计
+见 [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)。
 
-### 流水线
+---
+
+## 实验结果
+
+**条件。** Release 构建、`OMP_NUM_THREADS=2`、`OMP_DYNAMIC=false`，单帧耗时不含 I/O 与评估。
+真值为逐帧的雪点索引列表。评测集为
+[Winter Adverse Driving dataSet (WADS)][wads] 的 16 个场景 / 1 620 帧；点云不可再分发，
+因此不随仓库发布——见 [`docs/DATASET.md`](docs/DATASET.md)。
+
+[wads]: https://digitalcommons.mtu.edu/wads/
+
+### 表 1 —— 报告集上的检测精度与耗时
+
+| 口径 | Precision | Recall | F1 | ms/帧 |
+|---|---:|---:|---:|---:|
+| **宏平均 —— 16 场景 / 1 620 帧** | **96.6934** | **89.9765** | **92.8229** | **≈ 10** |
+| 由平均 P / R 反算的 F1 | — | — | 93.2141 | — |
+| 1 620 帧 Pooled | 96.8927 | 88.7047 | 92.6181 | — |
+
+<!-- Fig. 1 — drop docs/figures/fig1_per_scene.png in, then uncomment:
+![逐场景精确率、召回率与 F1](docs/figures/fig1_per_scene.png)
+-->
+*图 1 —— 19 个镜像场景的逐场景 Precision / Recall / F1，并标出 16 场景报告集。
+图片位：`docs/figures/fig1_per_scene.png`。*
+
+<!-- Fig. 2 — drop docs/figures/fig2_qualitative.png in, then uncomment:
+![定性结果：原始扫描、去雪后点云、被剔除的点](docs/figures/fig2_qualitative.png)
+-->
+*图 2 —— 参考帧 `042126` 的定性结果：原始扫描、去雪后点云，以及被剔除的 6 957 个点
+（即随仓库提供的 RViz 布局所展示的画面）。图片位：`docs/figures/fig2_qualitative.png`。*
+
+### 表 2 —— 与非学习式基线的对比
+
+基线已编译进算法核，且与本方法共用完全相同的 ROI 门控、索引映射与评估路径，因此对比
+隔离出的是判定规则本身，而不是工程管线。
+
+| 方法 | Precision | Recall | F1 | ms/帧 |
+|---|---:|---:|---:|---:|
+| DROR（Charron et al., CRV 2018） | TODO | TODO | TODO | TODO |
+| DSOR（Kurup & Bos, 2021） | TODO | TODO | TODO | TODO |
+| SOR（Rusu et al., 2008） | TODO | TODO | TODO | TODO |
+| ROR（Rusu, 2009） | TODO | TODO | TODO | TODO |
+| **SnowClear（发布配置）** | **96.6934** | **89.9765** | **92.8229** | **≈ 10** |
+
+<!-- Fig. 3 — drop docs/figures/fig3_comparison.png in, then uncomment:
+![SnowClear 与 DROR、DSOR、SOR、ROR 的精确率、召回率与 F1](docs/figures/fig3_comparison.png)
+-->
+*图 3 —— SnowClear 与表 2 中各非学习式基线的 Precision / Recall / F1 对比。
+图片位：`docs/figures/fig3_comparison.png`。*
+
+> [!NOTE]
+> 表中的 `TODO` 是刻意保留的：论文里基线的数字来自第三方上游实现，本仓库不重新分发它们，
+> 因此**不发布无法自行复现的数字**。用 `detector_type:=dror|dsor|sor|ror` 配合
+> `snowclear_runner --mode eval_folders` 跑一遍即可填上。
+
+### 表 3 —— 消融实验
+
+| 配置 | 宏平均 F1 | Δ F1 | 依据 |
+|---|---:|---:|---|
+| **发布配置（完整）** | **92.8229** | — | 表 1 |
+| 去掉零强度表面抑制 | TODO | **≈ −2.2 pp** | 实测*增量*，[`METHOD.md`](docs/METHOD.md) §4 |
+| 仅 ROI 门控 + `I = 0`（无阈值、无得分、无高度项） | 90.12 | −2.70 pp（推算） | 实测，[`METHOD.md`](docs/METHOD.md) §2 |
+| 加入平面度项（`enable_planarity_calculation`） | TODO | ≈ 0 | 100 帧实测贡献 ≈ 0，[`METHOD.md`](docs/METHOD.md) §5 |
+| 加入密度项（`enable_density_calculation`） | TODO | 负贡献 | [`METHOD.md`](docs/METHOD.md) §5 |
+| 加入特征熵（`enable_feature_entropy`） | TODO | 负贡献 | [`METHOD.md`](docs/METHOD.md) §5 |
+| 加入网格搜索优化（前 3 帧） | 92.8229 | 0 | 无额外收益；优化器是空操作 |
+| 加入安装高度导出 ROI（`enable_sensor_height_roi`） | TODO | 会改变数值 | 设计上默认关闭，[`METHOD.md`](docs/METHOD.md) §6 |
+
+<!-- Fig. 4 — drop docs/figures/fig4_ablation.png in, then uncomment:
+![SnowClear 流水线的模块级消融](docs/figures/fig4_ablation.png)
+-->
+*图 4 —— 模块级消融：各开关的宏平均 F1 增量，并以"ROI + `I=0`"这一平凡基线作为参考线。
+图片位：`docs/figures/fig4_ablation.png`。*
+
+<!-- Fig. 5 — drop docs/figures/fig5_acceptance.png in, then uncomment:
+![发布判定函数的可接受域](docs/figures/fig5_acceptance.png)
+-->
+*图 5 —— 发布判定函数在 `(I/T, h_ag)` 平面上的可接受域，展示 `s > 0.75` 的要求及其导致的
+`I < 1.36` 上界。图片位：`docs/figures/fig5_acceptance.png`。*
+
+### 表 4 —— 报告集之外的三个评测场景
+
+它们被**单独报告**而不是被丢弃，因为它们界定了方法的弱点（见
+[`docs/DATASET.md`](docs/DATASET.md) §3）。
+
+| 场景 | 帧数 | Precision | Recall | F1 |
+|---|---:|---:|---:|---:|
+| 14 | 101 | 93.96 | 53.47 | 67.34 |
+| 16 | 102 | 95.82 | 44.13 | 59.74 |
+| 76 | 5 | 97.85 | 98.84 | 98.34 |
+| 全部 19 场景，宏平均 | 1 828 | 96.5654 | 85.4256 | 90.0295 |
+
+场景 14 与 16 受发布判定函数的**强度上界**限制而召回偏低，并非过检：精确率维持在
+94–96 %，而召回率减半。
+
+### 表 5 —— 单帧耗时去向
+
+在场景 35（101 帧、`OMP_NUM_THREADS=2`）上实测，每帧：
+
+| 阶段 | ms | 说明 |
+|---|---:|---|
+| 真值读盘 + 解析 | 0.57 | 计入 I/O，不计入算法时间 |
+| 场景统计 + 特征分析（第 7–13 行） | 4.18 | 直方图、地面网格、支撑点哈希 |
+| 参数优化（第 22 行） | **0.0001** | 直接返回默认值 |
+| `α(r)` 阈值查表，取代逐点 `tgamma`/`pow` | 1.140 → 0.179 | 1 cm 表、4 001 项，逐帧构建一次 |
+| 仰角门控快路径，取代逐点 `asin` | 1.816 → 1.166 | 在 ROI 前的全量点云上省 36%（≈ 20万点/帧） |
+| ROI 门控合计 / 逐点判定合计 | TODO | 用 `verbose:=true` 补齐 |
+| **端到端，每帧** | **≈ 10** | 表 1 |
+
+<!-- Fig. 6 — drop docs/figures/fig6_runtime.png in, then uncomment:
+![逐阶段单帧耗时分解](docs/figures/fig6_runtime.png)
+-->
+*图 6 —— 逐阶段单帧耗时分解，并给出两项"数学等价"优化（仰角门控、`α(r)` 查表）的前后对比。
+图片位：`docs/figures/fig6_runtime.png`。*
+
+### 表 6 —— 换传感器时的鲁棒性
+
+发布配置里有四个平台相关的绝对常数。不重新标定就换平台是**已被实测的**失效模式，
+而不是假想问题。
+
+| 扰动 | 发布配置 | 打开自标定开关 |
+|---|---:|---:|
+| 参考传感器（WADS，64 线） | 92.92 F1 | 92.92 F1（`δ_I = 1.0`，完全等价） |
+| 安装高度 + 0.9 m | 68.56 F1（−24.36 pp） | TODO |
+| CADC（VLP-32C，`intensity` 归一化到 0…1） | 90.16 % 的 ROI 点被判为雪 | TODO |
+
+<!-- Fig. 7 — drop docs/figures/fig7_cross_sensor.png in, then uncomment:
+![发布常数与自标定替代量的跨传感器鲁棒性](docs/figures/fig7_cross_sensor.png)
+-->
+*图 7 —— 跨传感器鲁棒性：发布配置的绝对常数 vs. [`METHOD.md`](docs/METHOD.md) §6 的无标签
+自标定替代量。图片位：`docs/figures/fig7_cross_sensor.png`。*
+
+<!-- Fig. 8 — drop docs/figures/fig8_gt_ceiling.png in, then uncomment:
+![ROI 门控造成的召回上界](docs/figures/fig8_gt_ceiling.png)
+-->
+*图 8 —— ROI 门控造成的召回上界：在检测器看到之前就被剔除的真值雪点，按场景给出
+（16 场景 8.23 %，1 828 帧 12.25 %）。图片位：`docs/figures/fig8_gt_ceiling.png`。*
+
+**如何放图。** 上述每个图片位都是一段被注释掉的图片引用，目标路径为
+`docs/figures/<name>.png`；把文件放进去、删掉 `![…]` 行前后的两个注释标记即可。
+[`docs/figures/README.md`](docs/figures/README.md) 汇总了全部图片位、对应的图注，以及
+每张图背后数据的复现命令。
+
+---
+
+## 可复现性
+
+三道关卡，范围递增，都很便宜；引用任何数字之前请全跑一遍。
+
+| 关卡 | 命令 | 证明了什么 |
+|---|---|---|
+| 1. 单元测试 | `colcon test --packages-select snowclear_core snowclear_ros` | 配置默认值、参数通路，以及已文档化的判定函数不变量（如 `I ≥ 2` 永不为雪、OpenMP ≡ 串行） |
+| 2. 离线逐字节 | `snowclear_runner --mode all_checks …` | 重建后的输出与参考**逐字节一致** |
+| 3. 在线逐字节 | `python3 src/snowclear_ros/test/live_check.py …` | ROS 2 消息通路发出与离线**完全相同的索引** |
+
+`tools/verify.sh` 一次跑完全部五步（干净重建、两个生成器、两套测试、两道逐字节关卡）；
+先把 `SNOWCLEAR_DATA` 指向 WADS 镜像。
+
+关卡 2 输出：
 
 ```text
-                 sensor_msgs/PointCloud2                  (ROS 2)
-                          │
-                   pcl::fromROSMsg
-                          │
-  raw point cloud ────────┴────────────────────────────────────────
-        │
-   ┌────▼─────────────┐  ROI 门控：z、水平距离、最低环仰角
-   │  preprocessor    │  → 剔除约 73 % 的点
-   └────┬─────────────┘
-   ┌────▼─────────────┐  强度直方图 → Q1；1 m 局部地面网格
-   │ feature_extractor│
-   └────┬─────────────┘
-   ┌────▼─────────────┐  T(r, I) = s·Tg·(1 − α(r)·h(I))，α 来自 Gamma
-   │ 距离-强度阈值    │  拟合，逐帧建 LUT
-   └────┬─────────────┘
-   ┌────▼─────────────┐  强度得分 + 相对离地高度 → 局部阈值；
-   │  snow_detector   │  紧贴亮表面的 I≈0 点被否决（误检主来源）
-   └────┬─────────────┘
-   ┌────▼─────────────┐  处理后索引 → 原始索引
-   │  索引映射        │
-   └────┬─────────────┘
-        │
-   去雪点云 + 雪点索引 ──────────────► 三个 PointCloud2 话题      (ROS 2)
+[OK] 配置一致 (104 个键, 校验 104 个, 生效参数 109 个)
+[OK] 检测输出与参考逐字节一致 ("reference_042126.txt", 6957 行)
 ```
 
-**出厂配置下**确切的判定函数——包括发布配置里哪些特征被关闭——写在
-[`docs/METHOD.md`](docs/METHOD.md)。改参数前请先读它：融合得分已退化为
-`0.7·S + 0.15·hag`，其推论之一是**强度 ≥ 2 的点在当前参数下结构上不可能被判为雪点**。
+关卡 3 输出（节点运行中，回放一帧）：
+
+```text
+输入 042126.pcd: 208504 点
+参考 reference_042126.txt: 6957 个雪点索引
+发现订阅者，开始发送
+[OK] ROS 2 在线路径与参考逐位一致（6957 个索引）
+```
+
+任何可能改变检测结果的理由，都必须让关卡 2 从通过变为失败；规则见
+[`CONTRIBUTING.md`](CONTRIBUTING.md)。
 
 ---
 
@@ -220,50 +431,6 @@ export ROS_LOCALHOST_ONLY=1     # 或 ROS_AUTOMATIC_DISCOVERY_RANGE=LOCALHOST
 
 ---
 
-## 验证
-
-三道关卡，范围递增，都很便宜；引用任何数字之前请全跑一遍。
-
-| 关卡 | 命令 | 证明了什么 |
-|---|---|---|
-| 1. 单元测试 | `colcon test --packages-select snowclear_core snowclear_ros` | 配置默认值、参数通路，以及已文档化的判定函数不变量（如 `I ≥ 2` 永不为雪、OpenMP ≡ 串行） |
-| 2. 离线逐字节 | `snowclear_runner --mode all_checks …` | 重建后的输出与参考**逐字节一致** |
-| 3. 在线逐字节 | `python3 src/snowclear_ros/test/live_check.py …` | ROS 2 消息通路发出与离线**完全相同的索引** |
-
-关卡 2 输出：
-
-```text
-[OK] 配置一致 (104 个键, 校验 104 个, 生效参数 109 个)
-[OK] 检测输出与参考逐字节一致 ("reference_042126.txt", 6957 行)
-```
-
-关卡 3 输出（节点运行中，回放一帧）：
-
-```text
-输入 042126.pcd: 208504 点
-参考 reference_042126.txt: 6957 个雪点索引
-发现订阅者，开始发送
-[OK] ROS 2 在线路径与参考逐位一致（6957 个索引）
-```
-
-### 结果
-
-真值形式：每帧一个雪点索引列表。参考条件：Release 构建、
-`OMP_NUM_THREADS=2`、`OMP_DYNAMIC=false`，不含 I/O 与评估。
-
-| 口径 | Precision | Recall | F1 |
-|---|---:|---:|---:|
-| **宏平均 —— 16 场景 / 1 620 帧** | **96.6934** | **89.9765** | **92.8229** |
-| 由平均 P / R 反算的 F1 | — | — | 93.2141 |
-| 1 620 帧 Pooled | 96.8927 | 88.7047 | **92.6181** |
-| 参考机器，每帧 | — | — | ≈ 10 ms |
-
-> [!NOTE]
-> 评测集还包含三个额外场景。它们被**单独报告**而不是被丢弃——其中两个受召回限制。
-> 详见 [`docs/DATASET.md`](docs/DATASET.md)。
-
----
-
 ## 配置是生成出来的，不是手工维护的
 
 同一份配置需要三种形态：算法读取的实体、给 CLI 与质量门禁用的扁平 YAML、给 ROS 2 用的
@@ -283,8 +450,9 @@ python3 tools/gen_ros2_params.py   # 从扁平配置重新生成 ROS 2 params �
 
 | 文档 | 内容 |
 |---|---|
-| [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) | 包布局、两个接口、为什么在处切开 |
+| [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) | 包布局、两个接口、为什么在此处切开 |
 | [`docs/METHOD.md`](docs/METHOD.md) | 出厂配置下方法的确切行为，含被关闭的特征 |
+| [`docs/figures/README.md`](docs/figures/README.md) | 上文全部图片位的索引、图注与复现命令 |
 | [`docs/ROS2.md`](docs/ROS2.md) | 节点参考：话题、QoS、参数、launch、诊断 |
 | [`docs/DATASET.md`](docs/DATASET.md) | 数据布局、真值格式、评测划分 |
 | [`docs/MIGRATION_ROS1.md`](docs/MIGRATION_ROS1.md) | 相对 ROS 1 / catkin 版的改动清单 |
@@ -297,7 +465,8 @@ python3 tools/gen_ros2_params.py   # 从扁平配置重新生成 ROS 2 params �
 
 ```bibtex
 @article{snowclear,
-  title   = {TODO: paper title},
+  title   = {SnowClear: Training-Free Snow-Point Detection and Removal for Spinning LiDAR
+             via Range--Intensity Thresholding and Zero-Intensity Surface Suppression},
   author  = {TODO: authors},
   journal = {TODO: venue},
   year    = {TODO: year},

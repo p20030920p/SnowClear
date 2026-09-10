@@ -133,7 +133,9 @@ parameters first (a mis-set `xy_threshold` or `height_threshold` removes everyth
 detector sees it); if it is ~everything, check the incoming `intensity` field.
 
 Core diagnostics — calibration results, threshold values, stage timings — go to the ROS logger
-at `INFO` through the installed log sink, exactly as they do on the CLI's stdout.
+at `INFO` through the installed log sink, exactly as they do on the CLI's stdout. The
+per-stage frame-time budget measured this way is Fig. 6 of the README
+(slot: `docs/figures/fig6_runtime.png`, indexed in [`figures/README.md`](figures/README.md)).
 
 ---
 

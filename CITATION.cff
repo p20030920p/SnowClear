@@ -6,13 +6,17 @@
 cff-version: 1.2.0
 message: "If you use this software, please cite the accompanying paper."
 
-title: "SnowClear: real-time, training-free snow-point detection and removal for LiDAR point clouds"
+title: "SnowClear: Training-Free Snow-Point Detection and Removal for Spinning LiDAR via Range–Intensity Thresholding and Zero-Intensity Surface Suppression"
 
 abstract: >-
   SnowClear detects and removes snowfall-induced noise from mechanical spinning
   LiDAR point clouds per point, at frame rate, on CPU, without training, GPU or
-  learned weights. The algorithm core is ROS-agnostic and ships as a library
-  with an offline CLI; a separate ROS 2 package wraps it as a point-cloud
+  learned weights. The method combines a smooth range-intensity threshold whose
+  distance dependence is a Gamma-shaped fit to the weather-particle range
+  distribution, a per-point intensity score fused with a normalised
+  height-above-ground term, and a zero-intensity surface veto that rejects points
+  attached to a bright surface. The algorithm core is ROS-agnostic and ships as a
+  library with an offline CLI; a separate ROS 2 package wraps it as a point-cloud
   node. Both paths produce bit-identical detections, which is enforced by a
   byte-exact regression against a released reference output.
 

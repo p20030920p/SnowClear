@@ -99,6 +99,13 @@ requires `hag > 0.90`, i.e. more than **1.35 m** above the local ground surface.
 always passes the score test (it gives `S = 1`, `C = 0.7 > 0.675`) and is then filtered only
 by the surface veto.
 
+<!-- Fig. 5 — drop docs/figures/fig5_acceptance.png in, then uncomment:
+![Acceptance region of the released decision function](figures/fig5_acceptance.png)
+-->
+*Fig. 5 — Acceptance region of the released decision function in the `(I/T, h_ag)` plane: the
+`s > 0.75` requirement implied by the two-term score, and the resulting ceiling. Slot:
+[`figures/fig5_acceptance.png`](figures/README.md).*
+
 > **Practical implication.** On this dataset, ground truth snow is itself dominated by
 > `I ≈ 0` points. A rule consisting of the ROI gate plus `I = 0` already reproduces
 > **90.12** macro F1 on the 16-scene set (vs 92.82 for the full pipeline); see
@@ -122,6 +129,12 @@ T         = max(2.0, min(20.0, T(r, I)))               # the upper clamp never b
 `α(r)` depends only on range, and `Γ(k)` is a per-frame constant, so the whole α curve is
 built once per frame into a 4 001-entry LUT over 0–40 m at 1 cm resolution
 (`use_threshold_lut`, a measured 1.140 ms → 0.179 ms per ROI frame).
+
+<!-- Fig. 9 — drop docs/figures/fig9_threshold_curve.png in, then uncomment:
+![The released threshold T(r, I) and the Gamma-shaped alpha(r)](figures/fig9_threshold_curve.png)
+-->
+*Fig. 9 — `T(r, I)` for several intensities, with `Tg = clamp(0.8·Q1, 2.5, 8.0)` and the
+`α(r)` Gamma curve underneath. Slot: [`figures/fig9_threshold_curve.png`](figures/README.md).*
 
 > **Caveat on the source of `Tg`.** `adaptive_intensity_threshold()` is gated by
 > `use_adaptive_intensity_threshold` (on) and computes `0.8·Q1` plus optional complexity and
@@ -180,6 +193,12 @@ frames (`OMP_NUM_THREADS=2`):
 | `FeatureExtractor::analyze()` | 4.18 |
 | `ParameterOptimizer::optimize()` | **0.0001** |
 
+<!-- Fig. 6 — drop docs/figures/fig6_runtime.png in, then uncomment:
+![Per-stage frame-time breakdown](figures/fig6_runtime.png)
+-->
+*Fig. 6 — Per-stage frame-time breakdown, and the misleading bucket split the table above
+documents. Slot: [`figures/fig6_runtime.png`](figures/README.md).*
+
 ---
 
 ## 6. Sensor self-calibration (cross-sensor portability)
@@ -212,6 +231,13 @@ Known limitations, all measured — see the original audit report (see MIGRATION
   `roi_lowest_beam_ground_dist`) are module constants back-solved from the hardcoded ROI,
   so they validate the arithmetic rather than the estimator.
 - the range estimator has a 1 m grid, and has produced 16, 17 and 18 m across runs.
+
+<!-- Fig. 7 — drop docs/figures/fig7_cross_sensor.png in, then uncomment:
+![Released constants versus the self-calibrated replacements](figures/fig7_cross_sensor.png)
+-->
+*Fig. 7 — Cross-sensor robustness: the released absolute constants versus the label-free
+self-calibrated replacements of this section. Slot:
+[`figures/fig7_cross_sensor.png`](figures/README.md).*
 
 ---
 
