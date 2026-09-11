@@ -40,6 +40,13 @@ CJK = "/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc"
 
 RAW = LinearSegmentedColormap.from_list(
     "rawscan", ["#c3cad3", "#9aa2ac", "#5d656e", "#2a2f36"])
+# dark card for the README hero: a LiDAR scene reads like a real viewer screenshot
+DARKBG = "#0d1117"
+# low intensities must still read as structure on the dark card: the scan rings are
+# weak returns, and a near-black ramp makes the "after" panel look empty
+DARK = LinearSegmentedColormap.from_list(
+    "darkscan", ["#8b96a4", "#b3bdc9", "#d8dfe7", "#f7fafd"])
+SNOW = "#ff5a52"
 REMOVED = "#d73027"          # the points the method takes out
 FRAME = "#b8bec8"
 
@@ -48,12 +55,14 @@ TXT = {
                before_zoom="(b) Zoom — red: points SnowClear removes",
                after_zoom="(b) Zoom — the same crop, cleaned",
                removed="removed", kept="kept", roi="ROI {r:.0f} m",
-               note="BEV, sensor frame; {n} of {m} points removed ({p:.1f} %)"),
+               note="BEV, sensor frame; {n} of {m} points removed ({p:.1f} %)",
+               banner_raw="RAW  ·  red = snow returns", banner_after="SNOWCLEAR  ·  de-snowed"),
     "zh": dict(before_full="(a) 原始点云", after_full="(a) SnowClear 输出",
                before_zoom="(b) 局部放大 —— 红色为 SnowClear 剔除的点",
                after_zoom="(b) 局部放大 —— 同一区域，已清理",
                removed="剔除", kept="保留", roi="ROI {r:.0f} m",
-               note="BEV，传感器坐标系；{m} 点中剔除 {n} 点（{p:.1f} %）"),
+               note="BEV，传感器坐标系；{m} 点中剔除 {n} 点（{p:.1f} %）",
+               banner_raw="原始  ·  红色为雪点回波", banner_after="SNOWCLEAR  ·  去雪后"),
 }
 
 
@@ -197,6 +206,44 @@ def render(stem: str, outdir: pathlib.Path, kind: str, pts, keep, removed, crop,
     return out
 
 
+def render_banner(path: pathlib.Path, pts, kept, removed, crop, lang, dpi, vmax):
+    """One wide card: raw zoom with the removed returns in red, then the cleaned zoom."""
+    t = TXT[lang]
+    fps = (matplotlib.font_manager.FontProperties(fname=CJK) if lang == "zh" else None)
+    x, y, inten = pts[:, 0], pts[:, 1], pts[:, 3]
+    x0, x1, y0, y1 = crop
+    inside = (x >= x0) & (x <= x1) & (y >= y0) & (y <= y1)
+
+    fig, axes = plt.subplots(1, 2, figsize=(6.9, 3.15), dpi=dpi,
+                             gridspec_kw=dict(wspace=0.02))
+    fig.patch.set_facecolor(DARKBG)
+    for ax, kind in zip(axes, ("before", "after")):
+        ax.set_facecolor(DARKBG)
+        m = inside & (kept if kind == "after" else np.ones(x.size, dtype=bool))
+        ax.scatter(x[m], y[m], s=2.2, c=inten[m], cmap=DARK, vmin=0, vmax=vmax,
+                   linewidths=0, marker=".", rasterized=True)
+        if kind == "before":
+            rm = inside & removed
+            ax.scatter(x[rm], y[rm], s=9.0, c=SNOW, linewidths=0.3,
+                       edgecolors="#0d1117", marker=".", rasterized=True, zorder=5)
+            ax.text(0.03, 0.05, t["banner_raw"], transform=ax.transAxes, fontsize=9.5,
+                    color="#ffb4b0", fontproperties=fps, zorder=8)
+        else:
+            ax.text(0.03, 0.05, t["banner_after"], transform=ax.transAxes, fontsize=9.5,
+                    color="#9fe8c0", fontproperties=fps, zorder=8)
+        ax.set_xlim(x0, x1); ax.set_ylim(y0, y1)
+        ax.set_aspect("equal", adjustable="box")
+        ax.set_xticks([]); ax.set_yticks([])
+        for sp in ax.spines.values():
+            sp.set_color("#2b3138"); sp.set_linewidth(1.0)
+    fig.text(0.5, 0.5, "\u2192", fontsize=17, color="#0d1117", ha="center", va="center",
+             zorder=10, bbox=dict(boxstyle="circle,pad=0.22", facecolor="#eef3f8",
+                                  edgecolor="none"))
+    fig.subplots_adjust(left=0.008, right=0.992, top=0.985, bottom=0.015)
+    fig.savefig(path, dpi=dpi, facecolor=DARKBG)
+    plt.close(fig)
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -210,6 +257,8 @@ def main() -> int:
     ap.add_argument("--roi", type=float, default=17.0)
     ap.add_argument("--crop", default="auto", help='"auto" or "x0,x1,y0,y1"')
     ap.add_argument("--dpi", type=int, default=200)
+    ap.add_argument("--banner", action="store_true",
+                    help="also write <stem>_banner.png: one dark before/after card")
     args = ap.parse_args()
     stem = args.stem if (args.stem != "fig0" or args.lang == "en") else "fig0"
     if args.lang == "zh" and not stem.endswith("_zh"):
@@ -245,6 +294,10 @@ def main() -> int:
         print(f"{out}  zoom x {crop[0]:.1f}..{crop[1]:.1f} m: "
               f"{int((in_crop & removed).sum())} removed / {int(in_crop.sum())} points "
               f"({100.0 * (in_crop & removed).sum() / max(int(in_crop.sum()), 1):.1f} %)")
+    if args.banner:
+        b = args.outdir / f"{stem}_banner.png"
+        render_banner(b, pts, kept, removed, crop, args.lang, args.dpi, vmax)
+        print(f"{b}")
     return 0
 
 

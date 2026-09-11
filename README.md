@@ -1,8 +1,10 @@
 <div align="center">
 
-# SnowClear: Training-Free Snow-Point Detection and Removal for Spinning LiDAR via Range–Intensity Thresholding and Zero-Intensity Surface Suppression
+# SnowClear
 
-**Real-time, training-free snow-point detection and removal for LiDAR point clouds — with a ROS-agnostic algorithm core**
+**Training-free snow removal for spinning LiDAR via RITS**
+
+<sub><b>R</b>ange–<b>I</b>ntensity <b>T</b>hresholding with zero-intensity <b>S</b>urface suppression &nbsp;·&nbsp; real-time &nbsp;·&nbsp; CPU-only &nbsp;·&nbsp; no learned weights</sub>
 
 [![ROS 2](https://img.shields.io/badge/ROS%202-Jazzy-22314E?logo=ros&logoColor=white)](https://docs.ros.org/en/jazzy/)
 [![C++17](https://img.shields.io/badge/C%2B%2B-17-00599C?logo=cplusplus&logoColor=white)](https://en.cppreference.com/w/cpp/17)
@@ -11,70 +13,89 @@
 [![Regression](https://img.shields.io/badge/byte--exact%20regression-passing-success)](#reproducibility)
 [![License](https://img.shields.io/badge/license-TODO-lightgrey)](LICENSE)
 
-[Method](#method) &nbsp;•&nbsp; [Results](#results) &nbsp;•&nbsp; [Reproducibility](#reproducibility) &nbsp;•&nbsp; [Quick start](#quick-start) &nbsp;•&nbsp; [ROS 2 usage](#ros-2-usage) &nbsp;•&nbsp; [Citation](#citation)
+[Quick start](#quick-start) &nbsp;•&nbsp; [Results](#results) &nbsp;•&nbsp; [Method](#method) &nbsp;•&nbsp; [ROS 2](#ros-2-usage) &nbsp;•&nbsp; [Docs](#documentation)
 
 *English &nbsp;|&nbsp; [中文](README_CN.md)*
 
 </div>
 
-## Before / after
+![Raw scan with the snow returns in red, and the de-snowed result](docs/figures/fig0_banner.png)
 
-![Raw scan; red marks the 6 957 points SnowClear classifies as snow](docs/figures/fig0_before.png)
+*Reference frame `042126`, zoomed to 5.2 m: the raw scan with the 6 957 snow returns that
+SnowClear removes in red (left), and its output (right). Reproduce with
+`python3 tools/render_hero.py`.*
 
-*Fig. A — **Before.** The raw scan, 208 504 points. Red marks the 6 957 points SnowClear
-classifies as snow — 3.3 % of the frame, concentrated in the scan rings. The right panel zooms
-5.2 m onto those rings; 1 m scale bar.*
+SnowClear removes snowfall noise from a LiDAR scan **per point**, at ≈10 ms per frame on CPU,
+with **no training and no learned weights**. The algorithm core links only PCL, OpenMP and TBB —
+never ROS — so the same library runs offline and as a ROS 2 node, and the two produce
+**bit-identical** output, which two byte-exact gates enforce rather than assume.
 
-![The same scan after SnowClear; the snow returns are gone and the surfaces remain](docs/figures/fig0_after.png)
+| | |
+|---|---|
+| **Accuracy** — 16 scenes, 1 620 frames | P 96.69 · R 89.98 · **F1 92.82** |
+| **Speed** — reference machine, Release | **≈ 10 ms** per frame, CPU only |
+| **Learning** | none — no weights, no GPU, no dataset to download |
+| **Baselines included** | DROR · DSOR · SOR · ROR on the identical pipeline |
+| **Core dependencies** | PCL + OpenMP + TBB (`snowclear_core` never links `rclcpp`) |
 
-*Fig. B — **After.** The de-snowed cloud, same region. Ring structure, road surface and
-buildings are untouched. The full panels carry a 5 m bar and the dashed 17 m ROI circle;
-regenerate both with `python3 tools/render_hero.py`.*
+## Requirements
 
----
+| Component | Version |
+|---|---|
+| OS | Ubuntu 24.04 (tested) |
+| ROS | ROS 2 Jazzy |
+| PCL | 1.10 or newer (`common`, `filters`, `io`, `kdtree`, `search`) |
+| Compiler | C++17 (g++ 9+) |
+| Also | TBB, OpenMP, yaml-cpp (CLI only), Eigen |
 
-## Summary
-
-SnowClear removes snowfall-induced noise from mechanical spinning LiDAR scans **per point**,
-at frame rate, on CPU, with **no training, no GPU and no learned weights**. Given a point
-cloud it returns the de-snowed cloud and the indices of the points classified as snow, in the
-coordinate frame and index space of the *original* input.
-
-The method combines three ingredients: a **smooth range–intensity threshold** whose
-distance dependence is a Gamma-shaped fit to the weather-particle range distribution, a
-**per-point intensity score** fused with a normalised height-above-ground term, and a
-**zero-intensity surface veto** that rejects points sitting on a bright surface — the dominant
-false-positive source. Every stage is deterministic and parallel-safe, so the detection set
-does not depend on the thread count.
-
-The design constraint that shapes this repository: **the algorithm must not depend on a
-middleware**. The detection code links only PCL, OpenMP and TBB, so the same library is
-driven by a ROS 2 node, by an offline CLI, and by unit tests — and all three are proven to
-produce identical output.
-
-> **Reproducibility first.** The repository ships the released parameter set and a reference
-> detection output. Two independent gates verify a rebuild: an offline byte-exact regression
-> and a live publish/subscribe check that asserts the ROS 2 path emits the *same* 6 957
-> indices. Neither is optional in CI.
+`pcl_ros` is **not** required — `pcl_conversions` covers the `PointCloud2` ↔ `pcl::PointCloud`
+conversion, and everything else uses PCL directly.
 
 ---
 
-## Highlights
+## Quick start
 
-- **Middleware-free core.** `snowclear_core` never links `rclcpp`. The ROS 2 layer is a thin
-  adapter, so an embedded or offline deployment does not pay for ROS.
-- **Live and offline agree bit-for-bit.** The node calls the same
-  `CloudOperations::process_cloud()` the CLI does, and `live_check.py` proves it on real data.
-- **No learning, no GPU.** ~10 ms per frame on the reference machine, CPU only, Release build.
-- **Byte-exact regression.** One command fails the build if a refactor moves a single index.
-- **Typed ROS 2 parameters.** Every algorithm parameter is declared from a generated
-  registry, so `ros2 param list` shows the complete tunable surface — and
-  `tools/gen_param_map.py --check` fails if a parameter is added without registering it.
-- **Honest evaluation protocol.** Zero-detection frames, empty ground truth, whole-frame true
-  negatives and 0/0 denominators are handled explicitly instead of inflating scores.
-- **Non-learned baselines included.** DROR and DSOR share the exact preprocessing and
-  evaluation path as the proposed method.
+```bash
+source /opt/ros/jazzy/setup.bash
+git clone https://github.com/p20030920p/SnowClear.git
+cd SnowClear
 
+colcon build --cmake-args -DCMAKE_BUILD_TYPE=Release    # -O0 misrepresents runtime ~10x
+source install/setup.bash
+```
+
+Two build-system notes that cost time if you hit them cold:
+
+- Both packages call `find_package(MPI REQUIRED COMPONENTS C)` **before** `find_package(PCL)`.
+  PCL's config pulls in VTK, whose link interface needs the `MPI::MPI_C` target to already
+  exist; otherwise configuration fails inside `VTK-targets.cmake`.
+- Both projects declare `LANGUAGES C CXX`, because `FindMPI` refuses to resolve the `C`
+  component in a C++-only project.
+
+### Offline, no ROS graph needed
+
+```bash
+# one frame, no evaluation
+ros2 run snowclear_core snowclear_cli \
+  pcd_file:=/path/frame.pcd result_folder:=/path/gt save_results:=false
+
+# a whole folder, writing snow indices
+ros2 run snowclear_core snowclear_cli \
+  process_all_frames:=true pcd_folder:=/path/scans result_folder:=/path/gt \
+  save_results:=true output_dir:=/tmp/out
+
+# the quality gate — must print [OK] twice
+ros2 run snowclear_core snowclear_runner --mode all_checks \
+  --params install/snowclear_ros/share/snowclear_ros/config/snowclear_params.yaml \
+  pcd_file:=/path/frame.pcd reference_file:=testdata/reference_042126.txt \
+  output_dir:=/tmp/regression
+```
+
+Parameter precedence is `compiled-in defaults < --params file.yaml < key:=value`, and the
+`key:=value` spelling is deliberately the same as the ROS 1 build's, so configurations carry
+over unchanged.
+
+---
 ---
 
 ## Method
@@ -210,9 +231,6 @@ not shipped — see [`docs/DATASET.md`](docs/DATASET.md).
 | F1 recomputed from the mean P / R | — | — | 93.2141 | — |
 | Pooled over 1 620 frames | 96.8927 | 88.7047 | 92.6181 | — |
 
-<!-- Fig. 1 — drop docs/figures/fig1_per_scene.png in, then uncomment:
-![Per-scene precision, recall and F1](docs/figures/fig1_per_scene.png)
--->
 *Fig. 1 — Per-scene precision / recall / F1 across the 19 mirrored scenes, with the 16-scene
 reported set marked. Slot: `docs/figures/fig1_per_scene.png`.*
 
@@ -238,9 +256,6 @@ evaluation path, so the comparison isolates the decision rule rather than the pl
 | ROR (Rusu, 2009) | TODO | TODO | TODO | TODO |
 | **SnowClear (released configuration)** | **96.6934** | **89.9765** | **92.8229** | **≈ 10** |
 
-<!-- Fig. 3 — drop docs/figures/fig3_comparison.png in, then uncomment:
-![Precision, recall and F1 of SnowClear against DROR, DSOR, SOR and ROR](docs/figures/fig3_comparison.png)
--->
 *Fig. 3 — Precision / recall / F1 of SnowClear against the non-learned baselines of Table 2.
 Slot: `docs/figures/fig3_comparison.png`.*
 
@@ -276,18 +291,15 @@ Measured single-switch ablation on the 4-scene subset, including the two disable
 [`OPTIMIZATION.md`](docs/OPTIMIZATION.md) §6 (planarity −12.4 pp, density −21.2 pp, entropy
 −0.2 pp, surface suppression −2.6 pp).
 
-<!-- Fig. 4 — drop docs/figures/fig4_ablation.png in, then uncomment:
-![Module-wise ablation of the SnowClear pipeline](docs/figures/fig4_ablation.png)
--->
 *Fig. 4 — Module-wise ablation: macro-F1 delta for each switch, with the ROI-plus-`I=0`
 trivial baseline drawn as the reference line. Slot: `docs/figures/fig4_ablation.png`.*
 
-<!-- Fig. 5 — drop docs/figures/fig5_acceptance.png in, then uncomment:
-![Acceptance region of the released decision function](docs/figures/fig5_acceptance.png)
--->
 *Fig. 5 — Acceptance region of the released decision function in the `(I/T, h_ag)` plane,
 showing the `s > 0.75` requirement and the resulting `I < 1.36` ceiling. Slot:
 `docs/figures/fig5_acceptance.png`.*
+
+<details>
+<summary><b>More results — per-scene detail, frame time, cross-sensor robustness, error budget</b></summary>
 
 ### Table 4 — The three evaluation scenes outside the reported set
 
@@ -318,9 +330,6 @@ Measured on scene 35 (101 frames, `OMP_NUM_THREADS=2`), per frame:
 | ROI gate total / per-point decision total | TODO | fill from `verbose:=true` |
 | **End-to-end, per frame** | **≈ 10** | Table 1 |
 
-<!-- Fig. 6 — drop docs/figures/fig6_runtime.png in, then uncomment:
-![Per-stage frame-time breakdown](docs/figures/fig6_runtime.png)
--->
 *Fig. 6 — Per-stage frame-time breakdown, with the measured before/after of the two
 equivalence-preserving optimisations (elevation gate, `α(r)` LUT). Slot:
 `docs/figures/fig6_runtime.png`.*
@@ -336,16 +345,10 @@ platform without re-deriving them is a documented failure mode, not a hypothetic
 | Mounting height + 0.9 m | 68.56 F1 (−24.36 pp) | TODO |
 | CADC (VLP-32C, `intensity` normalised to 0…1) | 90.16 % of ROI points classified as snow | TODO |
 
-<!-- Fig. 7 — drop docs/figures/fig7_cross_sensor.png in, then uncomment:
-![Cross-sensor robustness of the released constants and the self-calibrated replacements](docs/figures/fig7_cross_sensor.png)
--->
 *Fig. 7 — Cross-sensor robustness: released absolute constants versus the label-free
 self-calibrated replacements of [`METHOD.md`](docs/METHOD.md) §6. Slot:
 `docs/figures/fig7_cross_sensor.png`.*
 
-<!-- Fig. 8 — drop docs/figures/fig8_gt_ceiling.png in, then uncomment:
-![Recall ceiling imposed by the ROI gate](docs/figures/fig8_gt_ceiling.png)
--->
 *Fig. 8 — Recall ceiling imposed by the ROI gate: ground-truth snow points removed before the
 detector sees them, by scene (8.23 % over 16 scenes, 12.25 % over 1 828 frames). Slot:
 `docs/figures/fig8_gt_ceiling.png`.*
@@ -379,10 +382,14 @@ ROI circle, which the decision rule never sees. This is the picture behind Table
 and the reason widening the ROI alone does not help — see
 [`OPTIMIZATION.md`](docs/OPTIMIZATION.md) §5.*
 
-**How to add a figure.** Every slot above is a commented-out image whose target path is
-`docs/figures/<name>.png`; place the file there and delete the two comment markers around
-the `![…]` line. [`docs/figures/README.md`](docs/figures/README.md) indexes all slots with
-their captions and the command that regenerates the data behind each one.
+**Still to be published.** The rows marked *Slot* above are reserve figures whose data this
+repository can already produce. [`docs/figures/README.md`](docs/figures/README.md) lists every
+slot with its exact filename, caption and the command that regenerates the data; drop the file
+in and uncomment the matching line.
+
+---
+
+</details>
 
 ---
 
@@ -417,65 +424,6 @@ Gate 3 output (node running, one replay):
 
 Any change that can alter detection must move gate 2 from passing to failing; the rules for
 that are in [`CONTRIBUTING.md`](CONTRIBUTING.md).
-
----
-
-## Requirements
-
-| Component | Version |
-|---|---|
-| OS | Ubuntu 24.04 (tested) |
-| ROS | ROS 2 Jazzy |
-| PCL | 1.10 or newer (`common`, `filters`, `io`, `kdtree`, `search`) |
-| Compiler | C++17 (g++ 9+) |
-| Also | TBB, OpenMP, yaml-cpp (CLI only), Eigen |
-
-`pcl_ros` is **not** required — `pcl_conversions` covers the `PointCloud2` ↔ `pcl::PointCloud`
-conversion, and everything else uses PCL directly.
-
----
-
-## Quick start
-
-```bash
-source /opt/ros/jazzy/setup.bash
-git clone https://github.com/p20030920p/SnowClear.git
-cd SnowClear
-
-colcon build --cmake-args -DCMAKE_BUILD_TYPE=Release    # -O0 misrepresents runtime ~10x
-source install/setup.bash
-```
-
-Two build-system notes that cost time if you hit them cold:
-
-- Both packages call `find_package(MPI REQUIRED COMPONENTS C)` **before** `find_package(PCL)`.
-  PCL's config pulls in VTK, whose link interface needs the `MPI::MPI_C` target to already
-  exist; otherwise configuration fails inside `VTK-targets.cmake`.
-- Both projects declare `LANGUAGES C CXX`, because `FindMPI` refuses to resolve the `C`
-  component in a C++-only project.
-
-### Offline, no ROS graph needed
-
-```bash
-# one frame, no evaluation
-ros2 run snowclear_core snowclear_cli \
-  pcd_file:=/path/frame.pcd result_folder:=/path/gt save_results:=false
-
-# a whole folder, writing snow indices
-ros2 run snowclear_core snowclear_cli \
-  process_all_frames:=true pcd_folder:=/path/scans result_folder:=/path/gt \
-  save_results:=true output_dir:=/tmp/out
-
-# the quality gate — must print [OK] twice
-ros2 run snowclear_core snowclear_runner --mode all_checks \
-  --params install/snowclear_ros/share/snowclear_ros/config/snowclear_params.yaml \
-  pcd_file:=/path/frame.pcd reference_file:=testdata/reference_042126.txt \
-  output_dir:=/tmp/regression
-```
-
-Parameter precedence is `compiled-in defaults < --params file.yaml < key:=value`, and the
-`key:=value` spelling is deliberately the same as the ROS 1 build's, so configurations carry
-over unchanged.
 
 ---
 

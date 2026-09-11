@@ -6,7 +6,7 @@
 cff-version: 1.2.0
 message: "If you use this software, please cite the accompanying paper."
 
-title: "SnowClear: Training-Free Snow-Point Detection and Removal for Spinning LiDAR via Range–Intensity Thresholding and Zero-Intensity Surface Suppression"
+title: "SnowClear: Training-Free Snow Removal for Spinning LiDAR via RITS (Range–Intensity Thresholding with zero-intensity Surface suppression)"
 
 abstract: >-
   SnowClear detects and removes snowfall-induced noise from mechanical spinning

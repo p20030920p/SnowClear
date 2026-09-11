@@ -26,6 +26,17 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   beyond the ROI) and `fig11_comparison[_zh].png` (SnowClear against SOR on one frame), all
   referenced live from both READMEs.
 
+### Changed
+
+- **The READMEs open like a library homepage now.** The paper-style title is condensed to a name
+  plus the method acronym (RITS), and the first screen is: title, one hero card (raw zoom with the
+  removed returns in red → cleaned zoom), three sentences, a five-row fact table, then the install
+  commands. Requirements and Quick start moved above Method and Results.
+- The 2 500-character Summary/Highlights pair is gone; its content is the fact table and the
+  sections below. Tables 4–7 (per-scene detail, frame time, cross-sensor robustness, error budget)
+  are collapsed into one `<details>` block, and the seven commented-out figure slots moved out of
+  the READMEs into `docs/figures/README.md`, which was already their index.
+
 - **`docs/OPTIMIZATION.md`** — a measured review of the released method's approach: the error
   budget (which stage makes each ground-truth point undetectable), the intensity bimodality that
   makes every threshold knob inert, the threshold that is pinned at its clamp in 70 % of frames,

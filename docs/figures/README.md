@@ -1,24 +1,24 @@
 # Result figures — interface
 
-Every experimental result in this repository has a figure slot reserved for it. The slots are
-referenced from [`README.md`](../../README.md) / [`README_CN.md`](../../README_CN.md) as
-comment blocks, so nothing renders as a broken image until a file lands here.
+Every experimental result in this repository has a figure slot reserved for it. This file is the
+single index of them: the READMEs carry only the captions, so nothing renders as a broken image
+and the homepage stays short. Published figures are live in both READMEs already.
 
 ## How to publish a figure
 
 1. Drop the file into this directory using the **exact filename** in the table below.
-2. In the referencing document, delete the two comment markers around the `![…]` line:
+2. Add one image line at the matching caption in `README.md` / `README_CN.md` — each reserved
+   slot ends with `Slot: \`docs/figures/<name>.png\``:
 
 ```markdown
-<!-- Fig. 3 — drop docs/figures/fig3_comparison.png in, then uncomment:
-![Precision, recall and F1 ...](docs/figures/fig3_comparison.png)
--->                              ← delete this line and the opening <!-- line
+![Per-scene precision, recall and F1](docs/figures/fig1_per_scene.png)
 ```
 
-To find every slot at once:
+The READMEs carry only the captions, so the homepage stays short and nothing renders as a broken
+image before the file exists. To list the reserved slots:
 
 ```bash
-grep -n '<!-- Fig\.' README.md README_CN.md
+grep -n 'Slot:' README.md README_CN.md
 ```
 
 Conventions: PNG, ≥ 1600 px wide, no transparency (GitHub renders on both light and dark
@@ -45,6 +45,7 @@ files, and the tool prints the same precision / recall / F1 the pipeline reports
 
 | File | Shows | Notes |
 |---|---|---|
+| `fig0_banner.png`, `fig0_zh_banner.png` | The hero card at the top of both READMEs: raw zoom with the removed returns in red, an arrow, the cleaned zoom | `python3 tools/render_hero.py --banner`; dark background on purpose — a LiDAR scene reads like a viewer screenshot and the red takes the eye |
 | `fig0_before.png`, `fig0_after.png` (+ `_zh`) | The pair that opens both READMEs: raw scan with the removed points in red, and the de-snowed result — each as full scene plus a 5.2 m zoom | `python3 tools/render_hero.py --pcd <frame> --detection <indices>`; the zoom window is chosen automatically where snow lies on visible structure, because a crop of the densest cluster is a red cloud with nothing underneath |
 | `fig2_qualitative.png`, `fig2_qualitative_zh.png` (+ `.svg`) | Scene 35 `042126`: (a) raw scan, (b) annotated snow, (c) TP / FN / FP with per-frame P / R / F1 called out, (d) the de-snowed cloud | the reference frame; misses are a handful of clusters just inside the ROI |
 | `fig10_qualitative_hard.png`, `fig10_qualitative_hard_zh.png` | Scene 16 `040036`: the same four panels | recall 44.1 % — most ground truth lies **outside** the ROI circle, which is why the misses are structural |

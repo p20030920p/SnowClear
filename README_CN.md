@@ -1,8 +1,10 @@
 <div align="center">
 
-# SnowClear：基于距离–强度阈值与零强度表面抑制的旋转式 LiDAR 免训练雪点检测与去除
+# SnowClear
 
-**实时、免训练的 LiDAR 点云雪点检测与去除 —— 算法核不依赖任何中间件**
+**面向旋转式 LiDAR 的免训练雪点去除 —— RITS**
+
+<sub><b>R</b>ange–<b>I</b>ntensity <b>T</b>hresholding with zero-intensity <b>S</b>urface suppression（距离–强度阈值 + 零强度表面抑制） &nbsp;·&nbsp; 实时 &nbsp;·&nbsp; 纯 CPU &nbsp;·&nbsp; 无学习权重</sub>
 
 [![ROS 2](https://img.shields.io/badge/ROS%202-Jazzy-22314E?logo=ros&logoColor=white)](https://docs.ros.org/en/jazzy/)
 [![C++17](https://img.shields.io/badge/C%2B%2B-17-00599C?logo=cplusplus&logoColor=white)](https://en.cppreference.com/w/cpp/17)
@@ -11,60 +13,85 @@
 [![回归](https://img.shields.io/badge/%E9%80%90%E5%AD%97%E8%8A%82%E5%9B%9E%E5%BD%92-%E9%80%9A%E8%BF%87-success)](#可复现性)
 [![许可证](https://img.shields.io/badge/license-TODO-lightgrey)](LICENSE)
 
-[方法](#方法) &nbsp;•&nbsp; [实验结果](#实验结果) &nbsp;•&nbsp; [可复现性](#可复现性) &nbsp;•&nbsp; [快速开始](#快速开始) &nbsp;•&nbsp; [ROS 2 使用](#ros-2-使用) &nbsp;•&nbsp; [引用](#引用)
+[快速开始](#快速开始) &nbsp;•&nbsp; [实验结果](#实验结果) &nbsp;•&nbsp; [方法](#方法) &nbsp;•&nbsp; [ROS 2](#ros-2-使用) &nbsp;•&nbsp; [文档](#文档)
 
 *[English](README.md) &nbsp;|&nbsp; 中文*
 
 </div>
 
-## 效果一览
+![原始扫描（红色为雪点回波）与去雪后的结果](docs/figures/fig0_zh_banner.png)
 
-![原始点云；红色为 SnowClear 判为雪点的部分](docs/figures/fig0_zh_before.png)
+*参考帧 `042126` 的 5.2 m 放大：左为原始扫描，红色是 SnowClear 剔除的 6 957 个雪点回波；
+右为其输出。用 `python3 tools/render_hero.py` 复现。*
 
-*图 A —— **筛选前。** 原始点云，208 504 点。红色为被判为雪的点，占全帧 **3.3 %**，集中在
-扫描环上。右侧为扫描环处 5.2 m 的放大，比例尺 1 m。*
+SnowClear 逐点去除 LiDAR 扫描中的降雪噪声：纯 CPU 约 10 ms/帧，**无需训练、无学习权重**。
+算法核只链接 PCL、OpenMP 与 TBB，**不依赖 ROS**——同一份库既能离线运行，也能作为 ROS 2
+节点运行，两者输出**逐位一致**，且这一点由两道逐字节关卡强制保证而非口头声明。
 
-![同一帧经 SnowClear 处理后的点云；雪点消失，结构保留](docs/figures/fig0_zh_after.png)
+| | |
+|---|---|
+| **精度** —— 16 场景 / 1 620 帧 | P 96.69 · R 89.98 · **F1 92.82** |
+| **速度** —— 参考机器，Release | **≈ 10 ms**/帧，纯 CPU |
+| **学习** | 无——无权重、无 GPU、无需下载数据集 |
+| **内置基线** | DROR · DSOR · SOR · ROR，共用同一流水线 |
+| **算法核依赖** | 仅 PCL + OpenMP + TBB（`snowclear_core` 从不链接 `rclcpp`） |
 
-*图 B —— **筛选后。** 同一区域的去雪点云：扫描环、路面与建筑完好。全景面板比例尺 5 m，
-虚线圆为 17 m ROI；两图均用 `python3 tools/render_hero.py` 生成。*
+## 环境要求
 
----
+| 组件 | 版本 |
+|---|---|
+| 操作系统 | Ubuntu 24.04（已实测） |
+| ROS | ROS 2 Jazzy |
+| PCL | 1.10 或更新（`common`、`filters`、`io`、`kdtree`、`search`） |
+| 编译器 | C++17（g++ 9+） |
+| 其他 | TBB、OpenMP、yaml-cpp（仅 CLI）、Eigen |
 
-## 摘要
-
-SnowClear 面向机械旋转式 LiDAR，**逐点**检测并去除降雪噪声：帧率级速度、纯 CPU、
-**无需训练、无需 GPU、无任何学习权重**。输入一帧点云，输出 (i) 去雪后的点云和
-(ii) 被判为雪点的索引——索引位于**原始输入点云**的坐标系与索引空间中。
-
-方法由三个要素组成：**平滑的距离–强度阈值**（其距离依赖项是对天气粒子距离分布的
-Gamma 拟合）、**逐点强度得分**与归一化离地高度项的融合，以及**零强度表面抑制**——
-否决紧贴亮表面的点，这是误检的主要来源。各阶段均为确定性且并行安全，检测集合不随线程数变化。
-
-塑造本仓库结构的那条约束是：**算法不得依赖中间件**。检测代码只链接 PCL、OpenMP 与
-TBB，因此同一份库既能被 ROS 2 节点驱动，也能被离线 CLI 与单元测试驱动——并且三者
-**产出的结果被证明完全一致**。
-
-> **可复现优先。** 仓库随附发布参数集与一份参考检测输出，重建后由两道独立的关卡验证：
-> 离线逐字节回归，以及一个断言「ROS 2 在线路径发出**同样那 6 957 个索引**」的实时
-> 发布/订阅检查。两者在 CI 中都不是可选项。
+**不需要 `pcl_ros`**：`PointCloud2` ↔ `pcl::PointCloud` 的转换由 `pcl_conversions` 提供，
+其余部分直接使用 PCL。
 
 ---
 
-## 亮点
+## 快速开始
 
-- **算法核与中间件解耦。** `snowclear_core` 从不链接 `rclcpp`。ROS 2 层只是薄适配层，
-  嵌入式或离线部署不必为 ROS 付出代价。
-- **在线与离线逐位一致。** 节点调用的是 CLI 调用的同一个
-  `CloudOperations::process_cloud()`，并由 `live_check.py` 在真实数据上验证。
-- **无学习、无 GPU。** 参考机器上约 10 ms/帧，纯 CPU，Release 构建。
-- **逐字节回归。** 一条命令即可让"重构移动了任何一个索引"变成构建失败。
-- **带类型的 ROS 2 参数。** 全部算法参数由生成的登记表声明，`ros2 param list` 能看到
-  完整的可调面；而 `tools/gen_param_map.py --check` 会在"加了参数却忘了登记"时失败。
-- **诚实的评估口径。** 零检测帧、空真值、全帧真负例、0/0 分母都被显式处理，而不是用来
-  抬高指标。
-- **随附非学习式基线。** DROR 与 DSOR 与本方法共享完全相同的预处理与评估路径。
+```bash
+source /opt/ros/jazzy/setup.bash
+git clone https://github.com/p20030920p/SnowClear.git
+cd SnowClear
 
+colcon build --cmake-args -DCMAKE_BUILD_TYPE=Release    # -O0 会让耗时虚高约 10 倍
+source install/setup.bash
+```
+
+两个构建上的坑，先踩过就不用再花时间：
+
+- 两个包都在 `find_package(PCL)` **之前**调用
+  `find_package(MPI REQUIRED COMPONENTS C)`。PCL 的 config 会拉入 VTK，其链接接口要求
+  `MPI::MPI_C` 目标已经存在；否则配置会在 `VTK-targets.cmake` 里失败。
+- 两个 project 都声明 `LANGUAGES C CXX`，因为 `FindMPI` 在纯 C++ 工程里拒绝解析 `C` 组件。
+
+### 离线模式（不需要 ROS 图）
+
+```bash
+# 单帧，不评估
+ros2 run snowclear_core snowclear_cli \
+  pcd_file:=/path/frame.pcd result_folder:=/path/gt save_results:=false
+
+# 整目录，写出雪点索引
+ros2 run snowclear_core snowclear_cli \
+  process_all_frames:=true pcd_folder:=/path/scans result_folder:=/path/gt \
+  save_results:=true output_dir:=/tmp/out
+
+# 质量门禁 —— 必须打印两次 [OK]
+ros2 run snowclear_core snowclear_runner --mode all_checks \
+  --params install/snowclear_ros/share/snowclear_ros/config/snowclear_params.yaml \
+  pcd_file:=/path/frame.pcd reference_file:=testdata/reference_042126.txt \
+  output_dir:=/tmp/regression
+```
+
+参数优先级为 `编译期默认值 < --params file.yaml < key:=value`，且 `key:=value` 的写法
+刻意与 ROS 1 版保持一致，因此原有配置可以原样搬过来。
+
+---
 ---
 
 ## 方法
@@ -189,9 +216,6 @@ src/snowclear_ros/      ROS 2 层。不含任何算法。
 | 由平均 P / R 反算的 F1 | — | — | 93.2141 | — |
 | 1 620 帧 Pooled | 96.8927 | 88.7047 | 92.6181 | — |
 
-<!-- Fig. 1 — drop docs/figures/fig1_per_scene.png in, then uncomment:
-![逐场景精确率、召回率与 F1](docs/figures/fig1_per_scene.png)
--->
 *图 1 —— 19 个镜像场景的逐场景 Precision / Recall / F1，并标出 16 场景报告集。
 图片位：`docs/figures/fig1_per_scene.png`。*
 
@@ -215,9 +239,6 @@ TP / FN / FP 拆分，并在图内引出本帧 P / R / F1 与最密集的误差�
 | ROR（Rusu, 2009） | TODO | TODO | TODO | TODO |
 | **SnowClear（发布配置）** | **96.6934** | **89.9765** | **92.8229** | **≈ 10** |
 
-<!-- Fig. 3 — drop docs/figures/fig3_comparison.png in, then uncomment:
-![SnowClear 与 DROR、DSOR、SOR、ROR 的精确率、召回率与 F1](docs/figures/fig3_comparison.png)
--->
 *图 3 —— SnowClear 与表 2 中各非学习式基线的 Precision / Recall / F1 对比。
 图片位：`docs/figures/fig3_comparison.png`。*
 
@@ -251,17 +272,14 @@ TP / FN / FP 拆分，并在图内引出本帧 P / R / F1 与最密集的误差�
 [`OPTIMIZATION.md`](docs/OPTIMIZATION.md) §6：平面度 −12.4 pp、密度 −21.2 pp、熵 −0.2 pp、
 表面抑制 −2.6 pp。
 
-<!-- Fig. 4 — drop docs/figures/fig4_ablation.png in, then uncomment:
-![SnowClear 流水线的模块级消融](docs/figures/fig4_ablation.png)
--->
 *图 4 —— 模块级消融：各开关的宏平均 F1 增量，并以"ROI + `I=0`"这一平凡基线作为参考线。
 图片位：`docs/figures/fig4_ablation.png`。*
 
-<!-- Fig. 5 — drop docs/figures/fig5_acceptance.png in, then uncomment:
-![发布判定函数的可接受域](docs/figures/fig5_acceptance.png)
--->
 *图 5 —— 发布判定函数在 `(I/T, h_ag)` 平面上的可接受域，展示 `s > 0.75` 的要求及其导致的
 `I < 1.36` 上界。图片位：`docs/figures/fig5_acceptance.png`。*
+
+<details>
+<summary><b>更多结果 —— 逐场景细节、单帧耗时、跨传感器鲁棒性、误差预算</b></summary>
 
 ### 表 4 —— 报告集之外的三个评测场景
 
@@ -292,9 +310,6 @@ TP / FN / FP 拆分，并在图内引出本帧 P / R / F1 与最密集的误差�
 | ROI 门控合计 / 逐点判定合计 | TODO | 用 `verbose:=true` 补齐 |
 | **端到端，每帧** | **≈ 10** | 表 1 |
 
-<!-- Fig. 6 — drop docs/figures/fig6_runtime.png in, then uncomment:
-![逐阶段单帧耗时分解](docs/figures/fig6_runtime.png)
--->
 *图 6 —— 逐阶段单帧耗时分解，并给出两项"数学等价"优化（仰角门控、`α(r)` 查表）的前后对比。
 图片位：`docs/figures/fig6_runtime.png`。*
 
@@ -309,15 +324,9 @@ TP / FN / FP 拆分，并在图内引出本帧 P / R / F1 与最密集的误差�
 | 安装高度 + 0.9 m | 68.56 F1（−24.36 pp） | TODO |
 | CADC（VLP-32C，`intensity` 归一化到 0…1） | 90.16 % 的 ROI 点被判为雪 | TODO |
 
-<!-- Fig. 7 — drop docs/figures/fig7_cross_sensor.png in, then uncomment:
-![发布常数与自标定替代量的跨传感器鲁棒性](docs/figures/fig7_cross_sensor.png)
--->
 *图 7 —— 跨传感器鲁棒性：发布配置的绝对常数 vs. [`METHOD.md`](docs/METHOD.md) §6 的无标签
 自标定替代量。图片位：`docs/figures/fig7_cross_sensor.png`。*
 
-<!-- Fig. 8 — drop docs/figures/fig8_gt_ceiling.png in, then uncomment:
-![ROI 门控造成的召回上界](docs/figures/fig8_gt_ceiling.png)
--->
 *图 8 —— ROI 门控造成的召回上界：在检测器看到之前就被剔除的真值雪点，按场景给出
 （16 场景 8.23 %，1 828 帧 12.25 %）。图片位：`docs/figures/fig8_gt_ceiling.png`。*
 
@@ -346,10 +355,13 @@ TP / FN / FP 拆分，并在图内引出本帧 P / R / F1 与最密集的误差�
 根本看不到它们。这就是表 7 中 A 阶段的直观来源，也是"仅扩大 ROI 无效"的原因，见
 [`OPTIMIZATION.md`](docs/OPTIMIZATION.md) §5。*
 
-**如何放图。** 上述每个图片位都是一段被注释掉的图片引用，目标路径为
-`docs/figures/<name>.png`；把文件放进去、删掉 `![…]` 行前后的两个注释标记即可。
-[`docs/figures/README.md`](docs/figures/README.md) 汇总了全部图片位、对应的图注，以及
-每张图背后数据的复现命令。
+**待补的图。** 上表中标注"图片位"的行是预留图位，其数据本仓库已经能生成。
+[`docs/figures/README.md`](docs/figures/README.md) 列出了每个图位的准确文件名、图注与复现
+命令；放入文件并取消对应行的注释即可显示。
+
+---
+
+</details>
 
 ---
 
@@ -384,63 +396,6 @@ TP / FN / FP 拆分，并在图内引出本帧 P / R / F1 与最密集的误差�
 
 任何可能改变检测结果的理由，都必须让关卡 2 从通过变为失败；规则见
 [`CONTRIBUTING.md`](CONTRIBUTING.md)。
-
----
-
-## 环境要求
-
-| 组件 | 版本 |
-|---|---|
-| 操作系统 | Ubuntu 24.04（已实测） |
-| ROS | ROS 2 Jazzy |
-| PCL | 1.10 或更新（`common`、`filters`、`io`、`kdtree`、`search`） |
-| 编译器 | C++17（g++ 9+） |
-| 其他 | TBB、OpenMP、yaml-cpp（仅 CLI）、Eigen |
-
-**不需要 `pcl_ros`**：`PointCloud2` ↔ `pcl::PointCloud` 的转换由 `pcl_conversions` 提供，
-其余部分直接使用 PCL。
-
----
-
-## 快速开始
-
-```bash
-source /opt/ros/jazzy/setup.bash
-git clone https://github.com/p20030920p/SnowClear.git
-cd SnowClear
-
-colcon build --cmake-args -DCMAKE_BUILD_TYPE=Release    # -O0 会让耗时虚高约 10 倍
-source install/setup.bash
-```
-
-两个构建上的坑，先踩过就不用再花时间：
-
-- 两个包都在 `find_package(PCL)` **之前**调用
-  `find_package(MPI REQUIRED COMPONENTS C)`。PCL 的 config 会拉入 VTK，其链接接口要求
-  `MPI::MPI_C` 目标已经存在；否则配置会在 `VTK-targets.cmake` 里失败。
-- 两个 project 都声明 `LANGUAGES C CXX`，因为 `FindMPI` 在纯 C++ 工程里拒绝解析 `C` 组件。
-
-### 离线模式（不需要 ROS 图）
-
-```bash
-# 单帧，不评估
-ros2 run snowclear_core snowclear_cli \
-  pcd_file:=/path/frame.pcd result_folder:=/path/gt save_results:=false
-
-# 整目录，写出雪点索引
-ros2 run snowclear_core snowclear_cli \
-  process_all_frames:=true pcd_folder:=/path/scans result_folder:=/path/gt \
-  save_results:=true output_dir:=/tmp/out
-
-# 质量门禁 —— 必须打印两次 [OK]
-ros2 run snowclear_core snowclear_runner --mode all_checks \
-  --params install/snowclear_ros/share/snowclear_ros/config/snowclear_params.yaml \
-  pcd_file:=/path/frame.pcd reference_file:=testdata/reference_042126.txt \
-  output_dir:=/tmp/regression
-```
-
-参数优先级为 `编译期默认值 < --params file.yaml < key:=value`，且 `key:=value` 的写法
-刻意与 ROS 1 版保持一致，因此原有配置可以原样搬过来。
 
 ---
 
