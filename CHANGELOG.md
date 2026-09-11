@@ -28,6 +28,12 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Changed
 
+- **The README hero is a 3D point cloud now**, not a bird's-eye view: a perspective camera and a
+  painter's-algorithm scatter (`--banner3d`) with size and brightness carrying depth, so the snow
+  reads as a volume suspended above the ground. The viewport is fitted to the projected cloud
+  rather than a fixed box (a fixed box left most of the frame empty), and each flake carries a
+  hairline of background colour so neighbouring flakes stay apart instead of merging into one red
+  mass.
 - **The READMEs open like a library homepage now.** The paper-style title is condensed to a name
   plus the method acronym (RITS), and the first screen is: title, one hero card (raw zoom with the
   removed returns in red → cleaned zoom), three sentences, a five-row fact table, then the install

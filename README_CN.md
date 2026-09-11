@@ -19,10 +19,11 @@
 
 </div>
 
-![原始扫描（红色为雪点回波）与去雪后的结果](docs/figures/fig0_zh_banner.png)
+![原始扫描（红色为雪点回波）与去雪后的结果，三维视图](docs/figures/fig0_zh_banner3d.png)
 
-*参考帧 `042126` 的 5.2 m 放大：左为原始扫描，红色是 SnowClear 剔除的 6 957 个雪点回波；
-右为其输出。用 `python3 tools/render_hero.py` 复现。*
+*参考帧 `042126` 的 6.8 m 视窗（三维透视）：左为原始扫描，红色是 SnowClear 剔除的 6 957 个
+雪点回波；右为其输出。远近由点的大小与亮度体现，雪点因此呈现为悬浮于地面上方的体积，而不是
+一张平面图。用 `python3 tools/render_hero.py --banner3d` 生成。*
 
 SnowClear 逐点去除 LiDAR 扫描中的降雪噪声：纯 CPU 约 10 ms/帧，**无需训练、无学习权重**。
 算法核只链接 PCL、OpenMP 与 TBB，**不依赖 ROS**——同一份库既能离线运行，也能作为 ROS 2

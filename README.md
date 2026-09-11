@@ -19,11 +19,12 @@
 
 </div>
 
-![Raw scan with the snow returns in red, and the de-snowed result](docs/figures/fig0_banner.png)
+![Raw scan with the snow returns in red, and the de-snowed result, seen in 3D](docs/figures/fig0_banner3d.png)
 
-*Reference frame `042126`, zoomed to 5.2 m: the raw scan with the 6 957 snow returns that
-SnowClear removes in red (left), and its output (right). Reproduce with
-`python3 tools/render_hero.py`.*
+*Reference frame `042126`, a 6.8 m window in perspective: the raw scan with the 6 957 snow
+returns that SnowClear removes in red (left), and its output (right). Depth is carried by point
+size and brightness, so the returns read as a volume suspended above the ground rather than a
+flat map. Reproduce with `python3 tools/render_hero.py --banner3d`.*
 
 SnowClear removes snowfall noise from a LiDAR scan **per point**, at ≈10 ms per frame on CPU,
 with **no training and no learned weights**. The algorithm core links only PCL, OpenMP and TBB —

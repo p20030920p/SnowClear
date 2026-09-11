@@ -21,6 +21,7 @@ always shows something worth looking at; override with --crop x0,x1,y0,y1.
 from __future__ import annotations
 
 import argparse
+import math
 import pathlib
 import sys
 
@@ -244,6 +245,104 @@ def render_banner(path: pathlib.Path, pts, kept, removed, crop, lang, dpi, vmax)
     plt.close(fig)
 
 
+# --------------------------------------------------------------- 3D banner ----
+# A perspective camera and a painter's-algorithm scatter, instead of mplot3d: this
+# keeps depth cues under our control (size and fog by distance) and stays fast on
+# the tens of thousands of points a hero crop contains.
+BG3D = "#0a0e14"
+KEPT_LO = (0.33, 0.42, 0.53)      # weak returns / ground: cool, dim
+KEPT_HI = (0.85, 0.90, 0.96)      # strong returns: near white
+SNOW3D = "#ff5a52"
+
+
+def _camera(azim_deg, elev_deg):
+    """World-from-camera rotation: returns (right, up, forward) unit vectors."""
+    a, e = math.radians(azim_deg), math.radians(elev_deg)
+    fwd = np.array([math.cos(e) * math.cos(a), math.cos(e) * math.sin(a), math.sin(e)])
+    fwd = -fwd                                    # camera looks from +offset to target
+    world_up = np.array([0.0, 0.0, 1.0])
+    right = np.cross(fwd, world_up)
+    right /= np.linalg.norm(right) + 1e-12
+    up = np.cross(right, fwd)
+    return right, up, fwd
+
+
+def _project(P, target, right, up, fwd, dist, focal):
+    v = P - target
+    z = dist + v @ fwd                            # depth along the view axis
+    x = v @ right
+    y = v @ up
+    return x * focal / z, y * focal / z, z
+
+
+def render_banner3d(path, pts, kept, removed, crop, lang, dpi, azim, elev, fog):
+    t = TXT[lang]
+    fps = (matplotlib.font_manager.FontProperties(fname=CJK) if lang == "zh" else None)
+    x0, x1, y0, y1 = crop
+    inside = (pts[:, 0] >= x0) & (pts[:, 0] <= x1) & (pts[:, 1] >= y0) & (pts[:, 1] <= y1)
+    P = np.ascontiguousarray(pts[inside][:, :3])
+    I = pts[inside][:, 3]
+    R = removed[inside]
+    K = ~R
+    span = max(x1 - x0, y1 - y0)
+    target = np.array([0.5 * (x0 + x1), 0.5 * (y0 + y1), float(np.median(P[:, 2]))])
+    dist = 1.9 * span
+    focal = 1.35
+    right, up, fwd = _camera(azim, elev)
+
+    # one viewport for both panels: they must stay comparable, so the bounds come
+    # from the union of the two projections rather than per-panel autoscaling
+    allx, ally, allz = _project(P, target, right, up, fwd, dist, focal)
+    mx = 0.06 * (allx.max() - allx.min())
+    my = 0.06 * (ally.max() - ally.min())
+    view = (allx.min() - mx, allx.max() + mx, ally.min() - my, ally.max() + my)
+
+    fig, axes = plt.subplots(1, 2, figsize=(7.0, 2.9), dpi=dpi,
+                             gridspec_kw=dict(wspace=0.025))
+    fig.patch.set_facecolor(BG3D)
+    for ax, kind in zip(axes, ("before", "after")):
+        ax.set_facecolor(BG3D)
+        m = K if kind == "after" else np.ones(P.shape[0], dtype=bool)
+        sx, sy, z = _project(P[m], target, right, up, fwd, dist, focal)
+        zmin, zmax = float(z.min()), float(z.max())
+        zn = np.clip((z - zmin) / max(zmax - zmin, 1e-6), 0.0, 1.0)
+        base = np.array(KEPT_LO)[None, :] * (1 - zn)[:, None] + \
+               np.array(KEPT_HI)[None, :] * zn[:, None]
+        # aerial perspective: pull distant points toward the background
+        bg = np.array(matplotlib.colors.to_rgb(BG3D))[None, :]
+        rgb = base * (1 - fog * zn)[:, None] + bg * (fog * zn)[:, None]
+        order = np.argsort(-z)                    # far first
+        ax.scatter(sx[order], sy[order], s=(0.9 + 3.6 * (1 - zn[order])),
+                   c=rgb[order], linewidths=0, marker=".", rasterized=True)
+        if kind == "before":
+            sr = R
+            rx, ry, rz = _project(P[sr], target, right, up, fwd, dist, focal)
+            rzn = np.clip((rz - zmin) / max(zmax - zmin, 1e-6), 0.0, 1.0)
+            ro = np.argsort(-rz)
+            # a hairline of background colour keeps neighbouring flakes apart, so the
+            # cloud reads as particles instead of one red mass
+            ax.scatter(rx[ro], ry[ro], s=(2.2 + 7.0 * (1 - rzn[ro])), c=SNOW3D,
+                       linewidths=0.18, edgecolors=BG3D, marker=".", rasterized=True,
+                       zorder=5)
+            ax.text(0.03, 0.05, t["banner_raw"], transform=ax.transAxes, fontsize=9.5,
+                    color="#ffb4b0", fontproperties=fps, zorder=8)
+        else:
+            ax.text(0.03, 0.05, t["banner_after"], transform=ax.transAxes, fontsize=9.5,
+                    color="#9fe8c0", fontproperties=fps, zorder=8)
+        ax.set_xlim(view[0], view[1]); ax.set_ylim(view[2], view[3])
+        ax.set_aspect("equal", adjustable="box")
+        ax.set_box_aspect((view[3] - view[2]) / (view[1] - view[0]))
+        ax.set_xticks([]); ax.set_yticks([])
+        for sp in ax.spines.values():
+            sp.set_color("#232a33"); sp.set_linewidth(1.0)
+    fig.text(0.5, 0.5, "\u2192", fontsize=17, color=BG3D, ha="center", va="center",
+             zorder=10, bbox=dict(boxstyle="circle,pad=0.22", facecolor="#eef3f8",
+                                  edgecolor="none"))
+    fig.subplots_adjust(left=0.006, right=0.994, top=0.988, bottom=0.012)
+    fig.savefig(path, dpi=dpi, facecolor=BG3D)
+    plt.close(fig)
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -259,6 +358,12 @@ def main() -> int:
     ap.add_argument("--dpi", type=int, default=200)
     ap.add_argument("--banner", action="store_true",
                     help="also write <stem>_banner.png: one dark before/after card")
+    ap.add_argument("--banner3d", action="store_true",
+                    help="write <stem>_banner3d.png: perspective 3D before/after card")
+    ap.add_argument("--half", type=float, default=2.6, help="zoom half-width, metres")
+    ap.add_argument("--azim", type=float, default=-60.0, help="3D camera azimuth, degrees")
+    ap.add_argument("--elev", type=float, default=22.0, help="3D camera elevation, degrees")
+    ap.add_argument("--fog", type=float, default=0.72, help="aerial perspective strength")
     args = ap.parse_args()
     stem = args.stem if (args.stem != "fig0" or args.lang == "en") else "fig0"
     if args.lang == "zh" and not stem.endswith("_zh"):
@@ -277,7 +382,8 @@ def main() -> int:
     x, y = pts[:, 0], pts[:, 1]
 
     if args.crop == "auto":
-        crop = _pick_crop(x, y, removed & (np.hypot(x, y) <= args.roi), args.roi)
+        crop = _pick_crop(x, y, removed & (np.hypot(x, y) <= args.roi), args.roi,
+                          half=args.half)
     else:
         x0, x1, y0, y1 = (float(v) for v in args.crop.split(","))
         crop = (x0, x1, y0, y1)
@@ -297,6 +403,11 @@ def main() -> int:
     if args.banner:
         b = args.outdir / f"{stem}_banner.png"
         render_banner(b, pts, kept, removed, crop, args.lang, args.dpi, vmax)
+        print(f"{b}")
+    if args.banner3d:
+        b = args.outdir / f"{stem}_banner3d.png"
+        render_banner3d(b, pts, kept, removed, crop, args.lang, args.dpi,
+                        args.azim, args.elev, args.fog)
         print(f"{b}")
     return 0
 
