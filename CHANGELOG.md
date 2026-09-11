@@ -7,6 +7,12 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- **`tools/render_hero.py`** — the before/after pair that now opens both READMEs: the raw scan
+  with the points SnowClear removes marked in red, and the de-snowed result, each as a full
+  scene plus a zoom. The zoom window is chosen by scoring whole windows for a moderate removed
+  fraction, so it lands where snow lies on visible structure (the densest cluster is a red cloud
+  with nothing underneath); marker size and window size are set so the red survives GitHub's
+  downscaling to README width.
 - **`tools/render_qualitative.py`** — renders the qualitative comparison figure a paper needs:
   (a) raw scan, (b) annotated snow, (c) the detection split into TP / FN / FP with the per-frame
   precision / recall / F1 called out in the panel and leader lines at the densest error clusters,

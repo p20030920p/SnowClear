@@ -17,6 +17,20 @@
 
 </div>
 
+## Before / after
+
+![Raw scan; red marks the 6 957 points SnowClear classifies as snow](docs/figures/fig0_before.png)
+
+*Fig. A — **Before.** The raw scan, 208 504 points. Red marks the 6 957 points SnowClear
+classifies as snow — 3.3 % of the frame, concentrated in the scan rings. The right panel zooms
+5.2 m onto those rings; 1 m scale bar.*
+
+![The same scan after SnowClear; the snow returns are gone and the surfaces remain](docs/figures/fig0_after.png)
+
+*Fig. B — **After.** The de-snowed cloud, same region. Ring structure, road surface and
+buildings are untouched. The full panels carry a 5 m bar and the dashed 17 m ROI circle;
+regenerate both with `python3 tools/render_hero.py`.*
+
 ---
 
 ## Summary

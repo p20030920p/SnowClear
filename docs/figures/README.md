@@ -45,6 +45,7 @@ files, and the tool prints the same precision / recall / F1 the pipeline reports
 
 | File | Shows | Notes |
 |---|---|---|
+| `fig0_before.png`, `fig0_after.png` (+ `_zh`) | The pair that opens both READMEs: raw scan with the removed points in red, and the de-snowed result — each as full scene plus a 5.2 m zoom | `python3 tools/render_hero.py --pcd <frame> --detection <indices>`; the zoom window is chosen automatically where snow lies on visible structure, because a crop of the densest cluster is a red cloud with nothing underneath |
 | `fig2_qualitative.png`, `fig2_qualitative_zh.png` (+ `.svg`) | Scene 35 `042126`: (a) raw scan, (b) annotated snow, (c) TP / FN / FP with per-frame P / R / F1 called out, (d) the de-snowed cloud | the reference frame; misses are a handful of clusters just inside the ROI |
 | `fig10_qualitative_hard.png`, `fig10_qualitative_hard_zh.png` | Scene 16 `040036`: the same four panels | recall 44.1 % — most ground truth lies **outside** the ROI circle, which is why the misses are structural |
 | `fig11_comparison.png`, `fig11_comparison_zh.png` | Scene 35 `042126`: SnowClear against SOR on the same frame, 2×2 | F1 96.31 vs 62.33; the baseline panel is dominated by false positives |
