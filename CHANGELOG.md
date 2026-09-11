@@ -7,6 +7,19 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- **`tools/render_qualitative.py`** — renders the qualitative comparison figure a paper needs:
+  (a) raw scan, (b) annotated snow, (c) the detection split into TP / FN / FP with the per-frame
+  precision / recall / F1 called out in the panel and leader lines at the densest error clusters,
+  (d) the de-snowed cloud. An optional second detection turns it into a method comparison.
+  Every number printed in a panel is recomputed from the index files and matches what the
+  pipeline reports for the same frame.
+- **`tools/pcd_common.py`** — one reader for PCD files, index files and the confusion matrix,
+  shared by the audit tool and the renderer, so a figure cannot disagree with a table.
+- **Published figures**: `fig2_qualitative[_zh].png` (scene 35, reference frame),
+  `fig10_qualitative_hard[_zh].png` (scene 16, recall-limited — most misses are ground truth
+  beyond the ROI) and `fig11_comparison[_zh].png` (SnowClear against SOR on one frame), all
+  referenced live from both READMEs.
+
 - **`docs/OPTIMIZATION.md`** — a measured review of the released method's approach: the error
   budget (which stage makes each ground-truth point undetectable), the intensity bimodality that
   makes every threshold knob inert, the threshold that is pinned at its clamp in 70 % of frames,

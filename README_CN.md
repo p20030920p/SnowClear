@@ -183,11 +183,12 @@ src/snowclear_ros/      ROS 2 层。不含任何算法。
 *图 1 —— 19 个镜像场景的逐场景 Precision / Recall / F1，并标出 16 场景报告集。
 图片位：`docs/figures/fig1_per_scene.png`。*
 
-<!-- Fig. 2 — drop docs/figures/fig2_qualitative.png in, then uncomment:
-![定性结果：原始扫描、去雪后点云、被剔除的点](docs/figures/fig2_qualitative.png)
--->
-*图 2 —— 参考帧 `042126` 的定性结果：原始扫描、去雪后点云，以及被剔除的 6 957 个点
-（即随仓库提供的 RViz 布局所展示的画面）。图片位：`docs/figures/fig2_qualitative.png`。*
+![参考帧 042126 的定性对比：原始点云、真值标注、带逐帧 P/R/F1 的检出结果、去雪后点云](docs/figures/fig2_qualitative_zh.png)
+
+*图 2 —— 参考帧 `042126`（场景 35）四联图：(a) 原始点云，(b) 真值雪点标注，(c) 检出结果按
+TP / FN / FP 拆分，并在图内引出本帧 P / R / F1 与最密集的误差聚集区，(d) 去雪后点云（剔除
+6 957 点）。虚线 ROI 圈之外的真值在构造上不可达。用 `python3 tools/render_qualitative.py`
+重新生成，见 [`figures/README.md`](docs/figures/README.md)。*
 
 ### 表 2 —— 与非学习式基线的对比
 
@@ -214,6 +215,12 @@ src/snowclear_ros/      ROS 2 层。不含任何算法。
 > `snowclear_runner --mode eval_folders` 跑一遍即可填上。本仓库自实现的 4 场景子集结果见
 > [`OPTIMIZATION.md`](docs/OPTIMIZATION.md) §7：SnowClear 宏平均 F1 77.56，DROR 7.10、
 > DSOR 6.93、SOR 36.36、ROR 1.92。
+
+![同一帧上 SnowClear 与 SOR 的对比：精确率 96.58 对 70.21，召回率 96.04 对 56.05](docs/figures/fig11_comparison_zh.png)
+
+*图 11 —— 同一帧上 SnowClear（左）与 SOR（右），两者共用完全相同的流水线。SOR 面板被误检
+（紫色）与漏检（蓝色）占满；F1 96.31 对 62.33。这是表 2 的定性对照，用 `--detection2`
+重新生成。*
 
 ### 表 3 —— 消融实验
 
@@ -320,6 +327,12 @@ src/snowclear_ros/      ROS 2 层。不含任何算法。
 （`I = 0` 占 85.59 %，`1 ≤ I < 2` 仅 0.76 %，`I ≥ 2` 占 13.65 %），因此当前参数化下任何阈值
 都触不到 `I ≥ 2` 的那部分；把 `score_threshold` 从 0.75 放宽到 0.55，召回只动 0.02 pp。
 后果、消融与优先级排序见 [`docs/OPTIMIZATION.md`](docs/OPTIMIZATION.md)。
+
+![场景 16 帧 040036：召回率 44.07%，因为大部分标注雪点在 ROI 之外](docs/figures/fig10_qualitative_hard_zh.png)
+
+*图 10 —— 一个受召回限制的帧（场景 16）：16 779 个漏检是 ROI 圈之外的标注雪点，判定规则
+根本看不到它们。这就是表 7 中 A 阶段的直观来源，也是"仅扩大 ROI 无效"的原因，见
+[`OPTIMIZATION.md`](docs/OPTIMIZATION.md) §5。*
 
 **如何放图。** 上述每个图片位都是一段被注释掉的图片引用，目标路径为
 `docs/figures/<name>.png`；把文件放进去、删掉 `![…]` 行前后的两个注释标记即可。

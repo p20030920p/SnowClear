@@ -202,12 +202,14 @@ not shipped — see [`docs/DATASET.md`](docs/DATASET.md).
 *Fig. 1 — Per-scene precision / recall / F1 across the 19 mirrored scenes, with the 16-scene
 reported set marked. Slot: `docs/figures/fig1_per_scene.png`.*
 
-<!-- Fig. 2 — drop docs/figures/fig2_qualitative.png in, then uncomment:
-![Qualitative result: raw scan, de-snowed cloud, removed points](docs/figures/fig2_qualitative.png)
--->
-*Fig. 2 — Qualitative result on the reference frame `042126`: raw scan, de-snowed cloud, and
-the 6 957 removed points (the view the shipped RViz layout reproduces). Slot:
-`docs/figures/fig2_qualitative.png`.*
+![Qualitative comparison on the reference frame 042126: raw scan, ground truth, detection outcome with per-frame precision/recall/F1, and the de-snowed cloud](docs/figures/fig2_qualitative.png)
+
+*Fig. 2 — Reference frame `042126` (scene 35) in four panels: (a) the raw scan, (b) the
+annotated snow, (c) the detection split into TP / FN / FP with the per-frame P / R / F1 called
+out in the panel and leader lines at the densest error clusters, and (d) the de-snowed cloud
+with 6 957 points removed. Ground truth outside the dashed ROI circle is unreachable by
+construction. Regenerate with `python3 tools/render_qualitative.py` — see
+[`figures/README.md`](docs/figures/README.md).*
 
 ### Table 2 — Comparison with non-learned baselines
 
@@ -236,6 +238,12 @@ Slot: `docs/figures/fig3_comparison.png`.*
 > them in. A 4-scene subset run with this repository's own re-implementations is in
 > [`OPTIMIZATION.md`](docs/OPTIMIZATION.md) §7: SnowClear 77.56 macro F1 against DROR 7.10,
 > DSOR 6.93, SOR 36.36 and ROR 1.92.
+
+![SnowClear against SOR on the reference frame: precision 96.58 vs 70.21, recall 96.04 vs 56.05](docs/figures/fig11_comparison.png)
+
+*Fig. 11 — The same frame, SnowClear (left) against SOR (right) on the identical pipeline.
+SOR's panel is dominated by false positives (purple) and misses (blue); F1 96.31 against 62.33.
+A qualitative companion to Table 2 — regenerate with `--detection2`.*
 
 ### Table 3 — Ablation
 
@@ -349,6 +357,13 @@ rather than algorithmic — the ground truth is bimodal in intensity (85.59 % at
 `I ≥ 2` points, and ``score_threshold`` sweeps between 0.55 and 0.75 move recall by 0.02 pp.
 [`docs/OPTIMIZATION.md`](docs/OPTIMIZATION.md) works through the consequences, the ablations and
 the prioritised next steps.
+
+![Scene 16 frame 040036: recall 44.07 percent because most annotated snow lies outside the ROI](docs/figures/fig10_qualitative_hard.png)
+
+*Fig. 10 — A recall-limited frame (scene 16): 16 779 of the misses are annotated snow beyond the
+ROI circle, which the decision rule never sees. This is the picture behind Table 7's stage A,
+and the reason widening the ROI alone does not help — see
+[`OPTIMIZATION.md`](docs/OPTIMIZATION.md) §5.*
 
 **How to add a figure.** Every slot above is a commented-out image whose target path is
 `docs/figures/<name>.png`; place the file there and delete the two comment markers around
