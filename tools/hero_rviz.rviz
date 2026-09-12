@@ -1,0 +1,109 @@
+Panels:
+  - Class: rviz_common/Displays
+    Name: Displays
+    Property Tree Widget:
+      Expanded:
+        - /TP detected1
+        - /FN missed1
+        - /FP false1
+      Splitter Ratio: 0.5
+    Tree Height: 620
+  - Class: rviz_common/Views
+    Name: Views
+Visualization Manager:
+  Class: ""
+  Displays:
+    - Class: rviz_default_plugins/PointCloud2
+      Enabled: true
+      Name: structure (ROI)
+      Topic:
+        Depth: 5
+        Durability Policy: Volatile
+        History Policy: Keep Last
+        Reliability Policy: Best Effort
+        Value: /snowclear/output/points
+      Style: Points
+      Size (Pixels): 1
+      Use Fixed Frame: true
+      Color Transformer: FlatColor
+      Color: 150; 158; 168
+      Position Transformer: XYZ
+      Queue Size: 10
+      Alpha: 0.18
+    - Class: rviz_default_plugins/PointCloud2
+      Enabled: true
+      Name: TP detected
+      Topic:
+        Depth: 5
+        Durability Policy: Volatile
+        History Policy: Keep Last
+        Reliability Policy: Best Effort
+        Value: /snowclear/hero/tp
+      Style: Points
+      Size (Pixels): 7
+      Use Fixed Frame: true
+      Color Transformer: FlatColor
+      Color: 57; 211; 83
+      Position Transformer: XYZ
+      Queue Size: 10
+      Alpha: 1
+    - Class: rviz_default_plugins/PointCloud2
+      Enabled: true
+      Name: FN missed
+      Topic:
+        Depth: 5
+        Durability Policy: Volatile
+        History Policy: Keep Last
+        Reliability Policy: Best Effort
+        Value: /snowclear/hero/fn
+      Style: Points
+      Size (Pixels): 9
+      Use Fixed Frame: true
+      Color Transformer: FlatColor
+      Color: 59; 130; 246
+      Position Transformer: XYZ
+      Queue Size: 10
+      Alpha: 1
+    - Class: rviz_default_plugins/PointCloud2
+      Enabled: true
+      Name: FP false
+      Topic:
+        Depth: 5
+        Durability Policy: Volatile
+        History Policy: Keep Last
+        Reliability Policy: Best Effort
+        Value: /snowclear/hero/fp
+      Style: Points
+      Size (Pixels): 9
+      Use Fixed Frame: true
+      Color Transformer: FlatColor
+      Color: 248; 81; 73
+      Position Transformer: XYZ
+      Queue Size: 10
+      Alpha: 1
+  Global Options:
+    Background Color: 25; 25; 30
+    Fixed Frame: lidar
+    Frame Rate: 30
+  Tools:
+    - Class: rviz_default_plugins/MoveCamera
+    - Class: rviz_default_plugins/Select
+    - Class: rviz_default_plugins/FocusCamera
+  Value: true
+  Views:
+    Current:
+      Class: rviz_default_plugins/Orbit
+      Distance: 20
+      Focal Point:
+        X: -4.88
+        Y: 1.01
+        Z: -0.06
+      Name: Current View
+      Pitch: 0.25
+      Target Frame: <Fixed Frame>
+      Yaw: 2.2
+Window Geometry:
+  Height: 900
+  Width: 1500
+  Displays:
+    collapsed: false

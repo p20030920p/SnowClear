@@ -19,13 +19,14 @@
 
 </div>
 
-![RViz showing the detection outcome on the reference frame: grey structure, green true positives, blue misses, red false positives](docs/figures/fig0_rviz.png)
+![Perspective 3D view of the reference frame coloured by detection outcome: grey structure, green detected snow, blue missed snow, red false positives](docs/figures/fig0_hero.png)
 
-*Reference frame `042126` in RViz: grey is the ROI structure, **green the 6 719 snow points
-detected and annotated**, **blue the 22 annotated points missed**, **red the 238 detected points
-that are not annotated**. The display names in the tree are the legend, and every display reports
-`Status: Ok`. Reproduce with `bash tools/capture_rviz_screenshot.sh`; the settings are documented
-in [`docs/figures/README.md`](docs/figures/README.md).*
+*Reference frame `042126` (208 504 points, ROI <= 17 m). **Green - the 6 719 snow points detected and
+annotated**; **blue - the 22 annotated points missed**; **red - 238 detections carrying no
+annotation**; grey is the remaining ROI structure, shaded by intensity. In-ROI for this frame that
+is precision 96.6 % / recall 99.7 %; the 16-scene macro result is 96.69 / 89.98 / 92.82. Rendered
+from the PCD plus the released indices by [`tools/render_hero3d.py`](tools/render_hero3d.py); the
+live RViz route is [`tools/capture_rviz_screenshot.sh`](tools/capture_rviz_screenshot.sh).*
 
 SnowClear removes snowfall noise from a LiDAR scan **per point**, at ≈10 ms per frame on CPU,
 with **no training and no learned weights**. The algorithm core links only PCL, OpenMP and TBB —

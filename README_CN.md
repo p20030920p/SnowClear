@@ -19,12 +19,13 @@
 
 </div>
 
-![RViz 中显示参考帧的检测结果：灰色为结构，绿色为正确检出，蓝色为漏检，红色为误检](docs/figures/fig0_rviz.png)
+![参考帧检测结果的三维透视图：灰色为结构，绿色为正确检出，蓝色为漏检，红色为误检](docs/figures/fig0_hero_zh.png)
 
-*参考帧 `042126` 在 RViz 中的真实截图：灰色为 ROI 内结构，**绿色为正确检出（6 719）**，
-**蓝色为漏检（22）**，**红色为误检（238）**；左侧 Displays 树里的名字就是图例，所有 display
-均为 `Status: Ok`。用 `bash tools/capture_rviz_screenshot.sh` 复现，设置见
-[`docs/figures/README.md`](docs/figures/README.md)。*
+*参考帧 `042126`（208 504 点，ROI <= 17 m）。**绿色 —— 检出且被标注的雪点 6 719 个**；
+**蓝色 —— 被标注但漏检的 22 个**；**红色 —— 检出却没有标注的 238 个**；灰色是 ROI 内其余结构，
+按强度着色。该帧 ROI 内精确率 96.6 %、召回率 99.7 %；16 个场景的宏观结果为 96.69 / 89.98 / 92.82。
+图片由 [`tools/render_hero3d.py`](tools/render_hero3d.py) 从 PCD 与已发布索引渲染；实时 RViz
+路径见 [`tools/capture_rviz_screenshot.sh`](tools/capture_rviz_screenshot.sh)。*
 
 SnowClear 逐点去除 LiDAR 扫描中的降雪噪声：纯 CPU 约 10 ms/帧，**无需训练、无学习权重**。
 算法核只链接 PCL、OpenMP 与 TBB，**不依赖 ROS**——同一份库既能离线运行，也能作为 ROS 2

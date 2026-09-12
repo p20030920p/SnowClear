@@ -15,7 +15,7 @@ DATA=${SNOWCLEAR_DATA:?set SNOWCLEAR_DATA to a WADS mirror (see docs/DATASET.md)
 FRAME=$DATA/pcd_output/35/velodyne/042126.pcd
 GT=$DATA/result/35/042126.txt
 DET=$PWD/testdata/reference_042126.txt   # the released reference output for this frame
-CFG=${RVCFG:-src/snowclear_ros/rviz/snowclear.rviz}
+CFG=${RVCFG:-tools/hero_rviz.rviz}
 
 rm -f "$STAGE"/*.xwd "$STAGE"/rviz_shot.png
 echo "[1/4] rviz2"
