@@ -33,6 +33,13 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   panel goes through `render_hero3d.draw_scene`, and the framing comes from the ground truth and
   the ROI structure rather than from a method's own output, so no panel can flatter itself by
   zooming somewhere convenient.
+- **`--mode roi_variants` in `tools/audit_error_budget.py`** and **Fig. 8**
+  (`tools/gen_ceiling_fig.py`) — the ground-truth budget per scene, and the measurement that closes
+  the ROI direction: widening the gate to `z <= 4 m`, `r <= 25 m` and `-30 deg` recovers at most
+  0.18 pp of ground truth while making 8-137 extra non-snow points reachable per frame. The veto
+  predicate is now a KD-tree lookup instead of a per-point Python loop, which is what makes a
+  seven-variant sweep of the same frames affordable; the scene-35 budget still reads 97.07 %
+  reachable, unchanged.
 - **`tools/gen_per_scene_fig.py`** — Fig. 1: per-scene precision / recall / F1 over the 19 mirrored
   scenes with the 16-scene reported set shaded. It reproduces every documented per-scene number and
   flags drift; the same run is what surfaced the mixed weighting in the all-19 row (below).

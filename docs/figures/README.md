@@ -59,6 +59,7 @@ draws Fig. 12 through the same `render_hero3d.draw_scene` that draws the hero.
 | `fig12_baselines.png`, `fig12_baselines_zh.png` | Scene 35 `042126`, six panels: ground truth, then SnowClear / DROR / DSOR / SOR / ROR — same frame, same camera, same palette, framed by the ground truth rather than by each method's own output | `python3 tools/render_baseline_clouds.py --pcd <frame> --gt <gt> --series Label=<indices.txt> …`; every panel is drawn by `render_hero3d.draw_scene`, and the per-panel P / R / F1 are per-frame and in-ROI |
 | `fig4_ablation.png`, `fig4_ablation_zh.png` | One switch flipped away from the released configuration per run: macro-F1 delta over the 4-scene subset, with the released and `ROI + I = 0` runs as reference lines | `python3 tools/gen_ablation_fig.py <csv-dir>`; flags drift > 0.05 pp against `OPTIMIZATION.md` §6 |
 | `fig5_acceptance.png`, `fig5_acceptance_zh.png` | The score gate in closed form: the acceptance region in the `(I/T, h_ag)` plane and the intensity ceiling it implies, with the measured `Tg` facts marked on the curve | `python3 tools/gen_acceptance_fig.py` — analytic, no dataset, no arguments |
+| `fig8_gt_ceiling.png`, `fig8_gt_ceiling_zh.png` | Where the recall goes, by scene: reachable / above the intensity ceiling / vetoed / outside the ROI gate, each annotated point charged to the first stage that rejects it | `python3 tools/audit_error_budget.py --mode budget --csv <file> --scenes <all>`, then `python3 tools/gen_ceiling_fig.py <file>`; `--mode roi_variants` measures what widening the gate would actually recover (0.06-0.18 pp of ground truth, at 8-137 extra reachable non-snow points per frame) |
 | `fig9_threshold_curve.png`, `fig9_threshold_curve_zh.png` | `T(r, I)` at the clamp ceiling, the `α(r)` Gamma weight that is its entire range dependence, and the per-frame base threshold `Tg = clamp(0.8·Q1, 2.5, 8.0)` | `python3 tools/gen_threshold_fig.py` — analytic, no dataset, no arguments |
 
 ```bash
@@ -79,7 +80,6 @@ Still to be filled. These stay commented out in the READMEs until a file lands h
 |---|---|---|---|---|
 | 6 | `fig6_runtime.png` | Per-stage frame time, plus the before/after of the two equivalence-preserving optimisations | README Results (Table 5); `METHOD.md` §5; `ROS2.md` §5 | `--mode reproduce_full … verbose:=true` with `OMP_NUM_THREADS=2 OMP_DYNAMIC=false` |
 | 7 | `fig7_cross_sensor.png` | Released absolute constants vs. the label-free self-calibrated replacements | README Results (Table 6); `METHOD.md` §6 | `enable_sensor_height_roi` / `enable_range_selfcal` / `enable_sparse_support_expand` runs |
-| 8 | `fig8_gt_ceiling.png` | Recall ceiling from ground truth removed by the ROI gate, by scene | README Results; `DATASET.md` §4 | `--mode eval_folders` plus the ground-truth index files |
 
 ## What must not appear here
 

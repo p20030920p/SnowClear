@@ -29,6 +29,7 @@ import pathlib
 import sys
 
 import numpy as np
+from scipy.spatial import cKDTree
 
 # ---------------------------------------------------------------- released config
 Z_LO, Z_HI = -1.0, 2.6
@@ -123,37 +124,41 @@ def _grid(x, y, z, cell, subset=None):
     return grid, keys
 
 
-def vetoed(x, y, z, intensity, query: np.ndarray) -> np.ndarray:
-    """Zero-intensity surface suppression, evaluated for the points in `query`.
+def support_index(x, y, z, intensity):
+    """The `I > SUP_MIN_I` support set as a KD-tree, or None if it is empty.
 
-    The support set is `I > SUP_MIN_I` — not the whole cloud.
+    Independent of the ROI, so a caller that asks the same frame several questions builds
+    it once. The predicate itself is unchanged from the hash-grid version this replaced
+    (see `vetoed`); only the neighbour lookup is vectorised, which is what makes a
+    seven-variant sweep of the same frames affordable.
     """
     support = np.nonzero(intensity > SUP_MIN_I)[0]
-    if support.size == 0 or query.size == 0:
+    if support.size == 0:
+        return None
+    return cKDTree(np.column_stack((x[support], y[support], z[support])))
+
+
+def vetoed(x, y, z, intensity, query: np.ndarray, grid=None) -> np.ndarray:
+    """Zero-intensity surface suppression, evaluated for the points in `query`.
+
+    A query point is vetoed when it is a weak return (`I <= 0.5`), beyond
+    `SUP_RANGE_FLOOR`, and has at least one `I > SUP_MIN_I` point within `SUP_RADIUS`:
+    the support set is not the whole cloud. Pass the index from `support_index` when
+    several queries share one frame.
+    """
+    if query.size == 0:
+        return np.zeros(0, dtype=bool)
+    if grid is None:
+        grid = support_index(x, y, z, intensity)
+    if grid is None:
         return np.zeros(query.size, dtype=bool)
-    grid, _ = _grid(x, y, z, SUP_RADIUS, support)
+    candidate = (intensity[query] <= 0.5 * SUP_MIN_I) & \
+                (np.hypot(x[query], y[query]) > SUP_RANGE_FLOOR)
     out = np.zeros(query.size, dtype=bool)
-    r2 = SUP_RADIUS * SUP_RADIUS
-    for n, j in enumerate(query):
-        if not (intensity[j] <= 0.5 * SUP_MIN_I
-                and math.hypot(x[j], y[j]) > SUP_RANGE_FLOOR):
-            continue
-        ck = (int(math.floor(x[j] / SUP_RADIUS)), int(math.floor(y[j] / SUP_RADIUS)),
-              int(math.floor(z[j] / SUP_RADIUS)))
-        for dx in (-1, 0, 1):
-            for dy in (-1, 0, 1):
-                for dz in (-1, 0, 1):
-                    for i in grid.get((ck[0] + dx, ck[1] + dy, ck[2] + dz), ()):
-                        if ((x[j] - x[i]) ** 2 + (y[j] - y[i]) ** 2
-                                + (z[j] - z[i]) ** 2) <= r2:
-                            out[n] = True
-                            break
-                    if out[n]:
-                        break
-                if out[n]:
-                    break
-            if out[n]:
-                break
+    sel = np.nonzero(candidate)[0]
+    if sel.size:
+        pts = np.column_stack((x[query[sel]], y[query[sel]], z[query[sel]]))
+        out[sel] = grid.query_ball_point(pts, SUP_RADIUS, return_length=True) > 0
     return out
 
 
@@ -193,11 +198,12 @@ def frames_of(data: pathlib.Path, scene: str):
     return sorted(pcd_dir.glob("*.pcd")), gt_dir
 
 
-def mode_budget(data, scenes) -> int:
+def mode_budget(data, scenes, csv_path=None) -> int:
     print("Error budget: which stage makes each ground-truth point undetectable")
     print("(per-frame macro average — the protocol the metrics use)\n")
     print(f"{'scene':>6} {'frames':>7} {'GT':>10} {'ROI':>8} {'I-ceiling':>10} "
           f"{'veto':>7} {'reachable':>10} {'Tg=2.5':>7}")
+    rows = []
     tot = dict(gt=0, roi=0, ceiling=0, veto=0, reach=0)
     mac = dict(roi=[], ceiling=[], veto=[], reach=[])
     for scene in scenes:
@@ -242,6 +248,8 @@ def mode_budget(data, scenes) -> int:
         print(f"{scene:>6} {len(frames):>7} {acc['gt']:>10} {mean['roi']:>7.1f}% "
               f"{mean['ceiling']:>9.1f}% {mean['veto']:>6.1f}% {mean['reach']:>9.1f}% "
               f"{clamped:>7}")
+        rows.append((scene, len(frames), acc["gt"], mean["roi"], mean["ceiling"],
+                     mean["veto"], mean["reach"], clamped))
     mean = {k: (sum(v) / len(v) if v else 0.0) for k, v in mac.items()}
     print("-" * 70)
     print(f"{'ALL':>6} {'':>7} {tot['gt']:>10} {mean['roi']:>7.1f}% "
@@ -253,6 +261,13 @@ def mode_budget(data, scenes) -> int:
           f"   <- recall cannot exceed this")
     print("\n  Note: each point is charged to the first stage that rejects it, so A is not")
     print("  independently recoverable — see docs/OPTIMIZATION.md section 3.")
+    if csv_path is not None:
+        with open(csv_path, "w", encoding="utf-8") as fh:
+            fh.write("scene,frames,gt,roi,ceiling,veto,reachable,tg_clamped\n")
+            for row in rows:
+                fh.write(",".join([row[0]] + [f"{v:.4f}" if isinstance(v, float) else str(v)
+                                              for v in row[1:]]) + "\n")
+        print(f"  wrote {csv_path}")
     return 0
 
 
@@ -331,12 +346,105 @@ def mode_separability(data, scenes) -> int:
     return 0
 
 
+# ------------------------------------------------------------------ ROI variants
+# Widening the gate is the only lever on the quarter of the ground truth the ROI throws
+# away before any decision is made (mode budget, item A). Each variant is scored with the
+# shipped rule's own necessary condition — intensity below the ceiling and not vetoed —
+# which is the same notion of "reachable" mode budget uses. On this subset that proxy
+# reads 68.57 % against a measured recall of 68.60 %, so it tracks the detector; but it
+# is an *upper* bound: it ignores the score gate's h_ag term, so the false-positive
+# column is the worst case, not a prediction.
+VARIANTS = [
+    ("released", Z_HI, XY_MAX, ELEV_MIN_DEG),
+    ("z <= 4.0 m", 4.0, XY_MAX, ELEV_MIN_DEG),
+    ("r <= 25 m", Z_HI, 25.0, ELEV_MIN_DEG),
+    ("elev >= -30 deg", Z_HI, XY_MAX, -30.0),
+    ("z <= 4.0 and r <= 25", 4.0, 25.0, ELEV_MIN_DEG),
+    ("all three widened", 4.0, 25.0, -30.0),
+]
+
+
+def gate_mask(x, y, z, z_hi, r_max, elev_min) -> np.ndarray:
+    r3 = np.sqrt(x * x + y * y + z * z)
+    elev = np.degrees(np.arcsin(np.clip(z / np.maximum(r3, 1e-9), -1.0, 1.0)))
+    return (z >= Z_LO) & (z <= z_hi) & (x * x + y * y <= r_max ** 2) & (elev >= elev_min)
+
+
+def reachable_idx(x, y, z, intensity, idx, tg, grid=None) -> np.ndarray:
+    """The subset of `idx` the shipped rule could still admit (ceiling, then veto)."""
+    if idx.size == 0:
+        return idx
+    t = threshold_of(x[idx], y[idx], intensity[idx], tg)
+    sub = idx[intensity[idx] < IT_MAX * t]
+    return sub if sub.size == 0 else sub[~vetoed(x, y, z, intensity, sub, grid)]
+
+
+def mode_roi_variants(data, scenes) -> int:
+    print("Widening the ROI gate: the ground truth it makes reachable, and the non-snow")
+    print("points that become reachable with it (per-frame macro average)\n")
+    agg = {name: dict(gt=[], gtn=[], fp=[]) for name, *_ in VARIANTS[1:]}
+    pool = []
+    for scene in scenes:
+        frames, gt_dir = frames_of(data, scene)
+        print(f"  scene {scene}: {len(frames)} frames", flush=True)
+        for f in frames:
+            gt = load_gt(gt_dir / f"{f.stem}.txt")
+            if gt.size == 0:
+                continue
+            pts = read_pcd(f)
+            gt = gt[gt < pts.shape[0]]
+            x, y, z, inten = pts[:, 0], pts[:, 1], pts[:, 2], pts[:, 3]
+            is_gt = np.zeros(pts.shape[0], dtype=bool)
+            is_gt[gt] = True
+            base = gate_mask(x, y, z, Z_HI, XY_MAX, ELEV_MIN_DEG)
+            b_idx = np.nonzero(base)[0]
+            tg = min(max(0.8 * q1_of(inten[b_idx]), 2.5), 8.0)
+            grid = support_index(x, y, z, inten)
+            base_reach = np.zeros(pts.shape[0], dtype=bool)
+            base_reach[reachable_idx(x, y, z, inten, b_idx, tg, grid)] = True
+            pool.append(100.0 * float((~base & is_gt).sum()) / max(int(gt.size), 1))
+            for name, z_hi, r_max, elev_min in VARIANTS[1:]:
+                idx = np.nonzero(gate_mask(x, y, z, z_hi, r_max, elev_min))[0]
+                if idx.size == 0:
+                    continue
+                tg_v = min(max(0.8 * q1_of(inten[idx]), 2.5), 8.0)
+                new = np.zeros(pts.shape[0], dtype=bool)
+                new[reachable_idx(x, y, z, inten, idx, tg_v, grid)] = True
+                added_gt = int((new & is_gt & ~base_reach).sum())
+                agg[name]["gt"].append(100.0 * added_gt / max(int(gt.size), 1))
+                agg[name]["gtn"].append(float(added_gt))
+                agg[name]["fp"].append(float((new & ~is_gt & ~base_reach).sum()))
+    print(f"{'variant':>20} {'dGT pp':>8} {'dGT/frame':>10} {'dFP/frame':>10} "
+          f"{'FP/GT':>7}")
+    best = None
+    for name, *_ in VARIANTS[1:]:
+        g = sum(agg[name]["gt"]) / max(len(agg[name]["gt"]), 1)
+        gn = sum(agg[name]["gtn"]) / max(len(agg[name]["gtn"]), 1)
+        fp = sum(agg[name]["fp"]) / max(len(agg[name]["fp"]), 1)
+        gpf = fp / g if g else float("inf")
+        print(f"{name:>20} {g:>7.2f}% {gn:>10.0f} {fp:>10.0f} {gpf:>7.1f}")
+        if best is None or gpf < best[1]:
+            best = (name, gpf, g, fp)
+    print(f"\n  ground truth the released gate removes: {np.mean(pool):.2f}% of GT "
+          f"(the pool a wider gate can draw from)")
+    if best:
+        print(f"  best trade: {best[0]} — +{best[2]:.2f} pp of GT reachable for "
+              f"{best[3]:.0f} extra reachable non-snow points per frame "
+              f"({best[1]:.1f} FP per recovered GT)")
+    print("  Caveat: FP/GT counts non-snow points that clear the ceiling and the veto, not")
+    print("  points the full score would accept; treat it as the worst case and see")
+    print("  docs/OPTIMIZATION.md section 3 for why A is not independently recoverable.")
+    return 0
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__,
                                 formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--mode", default="budget",
-                    choices=["budget", "intensities", "separability"])
+                    choices=["budget", "intensities", "separability", "roi_variants"])
     ap.add_argument("--scenes", nargs="+", default=["35", "11", "14", "16"])
+    ap.add_argument("--csv", type=pathlib.Path, default=None,
+                    help="write the per-scene table as CSV (fig 8 reads this)")
     ap.add_argument("--data", type=pathlib.Path,
                     default=pathlib.Path(os.environ.get("SNOWCLEAR_DATA", "./data")),
                     help="WADS mirror root (default $SNOWCLEAR_DATA or ./data)")
@@ -345,8 +453,11 @@ def main() -> int:
         print(f"no dataset at {args.data}; set SNOWCLEAR_DATA or --data "
               f"(layout: docs/DATASET.md)", file=sys.stderr)
         return 2
-    return {"budget": mode_budget, "intensities": mode_intensities,
-            "separability": mode_separability}[args.mode](args.data, args.scenes)
+    if args.mode == "budget":
+        return mode_budget(args.data, args.scenes, args.csv)
+    return {"intensities": mode_intensities,
+            "separability": mode_separability,
+            "roi_variants": mode_roi_variants}[args.mode](args.data, args.scenes)
 
 
 if __name__ == "__main__":

@@ -115,6 +115,26 @@ where the intensity gap is populated, or re-aim the method at the `I ≥ 2` poin
 
 ---
 
+### Widening the gate does not buy that recall back (measured)
+
+The 24.35 % charged to the ROI gate above is not a pool the decision rule is failing to reach.
+`python3 tools/audit_error_budget.py --mode roi_variants --scenes 35 11 14 16` re-scores every
+frame with wider gates and counts what becomes reachable under the same proxy (ceiling plus veto):
+
+| Wider gate | Δ GT reachable | Δ non-snow reachable | FP per recovered GT |
+|---|---:|---:|---:|
+| `z <= 4.0 m` | +0.06 pp | +8 / frame | 136 |
+| `r <= 25 m` | +0.09 pp | +71 / frame | 767 |
+| elevation `>= -30 deg` | +0.00 pp | +47 / frame | — |
+| `z <= 4.0` and `r <= 25` | +0.18 pp | +89 / frame | 497 |
+| all three widened | +0.18 pp | +137 / frame | 760 |
+
+The annotated points outside the gate are also the ones the rest of the rule rejects — far, weak
+and surface-attached — so widening it admits mostly non-snow: at best 0.18 pp of ground truth for
+89 extra reachable non-snow points per frame. **Do not spend recall budget here.** The reachable
+ceiling is a property of the whole rule, not of the gate alone, which is why item A above cannot be
+recovered on its own and why the only lever with real headroom is the ceiling (roadmap item 1).
+
 ## 4. The "adaptive" intensity threshold is pinned at its lower clamp
 
 Measured over 406 frames (`Tg = clamp(0.8·Q1, 2.5, 8.0)`, the value the CLI logs as

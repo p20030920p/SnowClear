@@ -144,7 +144,7 @@ the only scenes in the mirror where that limit actually binds.
 ![Per-scene precision, recall and F1 across the mirrored scenes](figures/fig1_per_scene.png)
 -->
 *Fig. 1 — Per-scene precision / recall / F1, scenes 14 and 16 visibly recall-limited.
-Slot: [`figures/fig1_per_scene.png`](figures/README.md).*
+Published as [`figures/fig1_per_scene.png`](figures/fig1_per_scene.png).*
 
 ---
 
@@ -158,7 +158,7 @@ Slot: [`figures/fig1_per_scene.png`](figures/README.md).*
   negatives". The strict protocol therefore reports accuracy over the **evaluated subset**
   only. Prefer precision / recall / F1 in any write-up.
 * Ground-truth points removed by the ROI gate are counted as **false negatives**. They are a
-  hard recall ceiling: measured at 8.23 % loss over the 16-scene set and 12.25 % over all
+  hard recall ceiling: measured at 7.38 % loss over the 16-scene set and 10.45 % over all
   1 828 frames. The original audit report is not distributed with this repository; see
   [`MIGRATION_ROS1.md`](MIGRATION_ROS1.md) §5.
 

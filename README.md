@@ -387,9 +387,17 @@ platform without re-deriving them is a documented failure mode, not a hypothetic
 self-calibrated replacements of [`METHOD.md`](docs/METHOD.md) §6. Slot:
 `docs/figures/fig7_cross_sensor.png`.*
 
-*Fig. 8 — Recall ceiling imposed by the ROI gate: ground-truth snow points removed before the
-detector sees them, by scene (8.23 % over 16 scenes, 12.25 % over 1 828 frames). Slot:
-`docs/figures/fig8_gt_ceiling.png`.*
+![Ground-truth budget by scene: reachable, above the intensity ceiling, vetoed, and outside the ROI gate](docs/figures/fig8_gt_ceiling.png)
+
+*Fig. 8 — Where the recall goes. Each annotated point is charged to the first stage that rejects
+it, so the bands are ordered rather than independent: over the 16-scene reported set 89.90 % of
+ground truth stays reachable by the shipped rule, 7.38 % falls outside the ROI gate, 2.12 % sits
+above the intensity ceiling and 0.60 % is vetoed as attached to a surface (all 19 scenes:
+86.04 / 10.45 / 2.93 / 0.57). The measured recall of 89.98 % is within 0.1 pp of the reachable
+band — what limits this method is the gate and the ceiling, not the decision rule. Scenes 14 and
+16 are the two where the gate takes 39–40 % of the annotations. Regenerate with
+`python3 tools/audit_error_budget.py --mode budget --csv <file>` and
+`python3 tools/gen_ceiling_fig.py <file>`.*
 
 ### Table 7 — Where the recall is lost
 
