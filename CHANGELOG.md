@@ -33,6 +33,15 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   panel goes through `render_hero3d.draw_scene`, and the framing comes from the ground truth and
   the ROI structure rather than from a method's own output, so no panel can flatter itself by
   zooming somewhere convenient.
+- **`tools/make_derived_frames.py`**, **`tools/measure_portability.sh`** and
+  **`tools/gen_portability_fig.py`** — Fig. 7, the portability claim measured instead of asserted.
+  The derived mirror re-emits every cloud with `z += -0.9 m` (a rigid translation with a flat
+  ground: a simulated higher mount) and carries the ground-truth indices over unchanged, because
+  the point order does not move. A +0.9 m mount costs the released constants **24.25 pp** of macro
+  F1 (92.82 → 68.57; the same 68.6 the original audit reported, which this protocol therefore
+  reproduces to 0.01 pp) while precision holds and recall halves; the self-calibrated switches hold
+  92.59, i.e. they recover all but 0.06 pp, at 2.4x the frame time. The CADC row is left as an
+  explicit gap rather than a number this repository cannot regenerate.
 - **`tools/measure_timing.sh`** and **`tools/gen_runtime_fig.py`** — Fig. 6, the frame-time
   budget. The figure judges each equivalence-preserving switch on the stage it can touch and
   pairs the runs round by round, because on this shared machine a single pass can be 40 % off the

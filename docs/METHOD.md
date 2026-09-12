@@ -250,12 +250,11 @@ Known limitations, all measured — see the original audit report (see MIGRATION
   so they validate the arithmetic rather than the estimator.
 - the range estimator has a 1 m grid, and has produced 16, 17 and 18 m across runs.
 
-<!-- Fig. 7 — drop docs/figures/fig7_cross_sensor.png in, then uncomment:
-![Released constants versus the self-calibrated replacements](figures/fig7_cross_sensor.png)
--->
-*Fig. 7 — Cross-sensor robustness: the released absolute constants versus the label-free
-self-calibrated replacements of this section. Slot:
-[`figures/fig7_cross_sensor.png`](figures/README.md).*
+![Released constants versus the label-free self-calibrated replacements](figures/fig7_cross_sensor.png)
+
+*Fig. 7 — Cross-sensor robustness, measured: a +0.9 m mount costs the released constants 24.25 pp
+of macro F1 and the self-calibrated replacements 0.06 pp. Regenerate with
+`bash tools/measure_portability.sh <outdir> <scenes…>` and `python3 tools/gen_portability_fig.py`.*
 
 ---
 

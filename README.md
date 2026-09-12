@@ -388,13 +388,21 @@ platform without re-deriving them is a documented failure mode, not a hypothetic
 
 | Perturbation | Released configuration | Self-calibrated switches on |
 |---|---:|---:|
-| Reference sensor (WADS, 64-beam) | 92.92 F1 | 92.92 F1 (`δ_I = 1.0`, identical) |
-| Mounting height + 0.9 m | 68.56 F1 (−24.36 pp) | TODO |
-| CADC (VLP-32C, `intensity` normalised to 0…1) | 90.16 % of ROI points classified as snow | TODO |
+| Reference sensor (WADS, 64-beam) | 92.82 F1 | 92.65 F1 (−0.17 pp), 2.4× the frame time |
+| Mounting height + 0.9 m (`z += −0.9 m`, simulated) | 68.57 F1 (−24.25 pp) | 92.59 F1 — recovers all but 0.06 pp |
+| CADC (VLP-32C, `intensity` normalised to 0…1) | not measured here — needs the CADC dataset, which is not shipped | not measured here |
 
-*Fig. 7 — Cross-sensor robustness: released absolute constants versus the label-free
-self-calibrated replacements of [`METHOD.md`](docs/METHOD.md) §6. Slot:
-`docs/figures/fig7_cross_sensor.png`.*
+![Macro F1 of the released constants against the self-calibrated switches, on the reference mount and with the sensor mounted 0.9 m higher](docs/figures/fig7_cross_sensor.png)
+
+*Fig. 7 — The portability claim, measured rather than asserted. Mounting the sensor 0.9 m higher
+(`z += −0.9 m` on every cloud, a rigid translation with a flat ground — a simulation, not a
+recording) costs the released constants **24.25 pp** of macro F1 (92.82 → 68.57) while their
+precision barely moves: what breaks is the recall, 89.97 % → 53.42 %, because the four absolute
+constants of [`METHOD.md`](docs/METHOD.md) §6 stop covering the same part of the world. The
+label-free self-calibration holds **92.59** (−0.06 pp against the reference mount, where it costs
+0.17 pp) at 2.4× the frame time. The CADC row stays empty on purpose: that dataset is not
+reproducible here. Regenerate with
+`bash tools/measure_portability.sh <outdir> <scenes…>` and `python3 tools/gen_portability_fig.py <outdir>`.*
 
 ![Ground-truth budget by scene: reachable, above the intensity ceiling, vetoed, and outside the ROI gate](docs/figures/fig8_gt_ceiling.png)
 
