@@ -19,11 +19,13 @@
 
 </div>
 
-![原始扫描（红色为雪点回波）与去雪后的结果，三维视图](docs/figures/fig0_zh_banner3d.png)
+![在 RViz 中用本仓库自带布局显示：灰色为去雪点云，红色为剔除的 6 957 个雪点](docs/figures/fig0_rviz.png)
 
-*参考帧 `042126` 的 6.8 m 视窗（三维透视）：左为原始扫描，红色是 SnowClear 剔除的 6 957 个
-雪点回波；右为其输出。远近由点的大小与亮度体现，雪点因此呈现为悬浮于地面上方的体积，而不是
-一张平面图。用 `python3 tools/render_hero.py --banner3d` 生成。*
+*参考帧 `042126` 在 RViz 中的真实截图，使用本仓库自带的布局
+（[`snowclear.rviz`](src/snowclear_ros/rviz/snowclear.rviz)）：灰色为去雪后的点云，红色为
+SnowClear 剔除的 6 957 个点，所有 display 均为 `Status: Ok`。用
+`bash tools/capture_rviz_screenshot.sh` 复现，配图设置见
+[`docs/figures/README.md`](docs/figures/README.md)。*
 
 SnowClear 逐点去除 LiDAR 扫描中的降雪噪声：纯 CPU 约 10 ms/帧，**无需训练、无学习权重**。
 算法核只链接 PCL、OpenMP 与 TBB，**不依赖 ROS**——同一份库既能离线运行，也能作为 ROS 2

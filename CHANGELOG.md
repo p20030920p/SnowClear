@@ -28,12 +28,17 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Changed
 
-- **The README hero is a 3D point cloud now**, not a bird's-eye view: a perspective camera and a
-  painter's-algorithm scatter (`--banner3d`) with size and brightness carrying depth, so the snow
-  reads as a volume suspended above the ground. The viewport is fitted to the projected cloud
-  rather than a fixed box (a fixed box left most of the frame empty), and each flake carries a
-  hairline of background colour so neighbouring flakes stay apart instead of merging into one red
-  mass.
+- **The README hero is a real RViz screenshot** of the shipped layout: grey de-snowed cloud,
+  the removed points in red, every display reporting `Status: Ok`. `tools/capture_rviz_screenshot.sh`
+  reproduces it — RViz first, then a light publisher that sends the three clouds straight from the
+  PCD and the released reference indices (`tools/rviz_feed.py`), then the X11 client window is
+  captured with `xwd` and decoded by `tools/xwd_to_png.py`. Three things had to be right for the
+  still to read: a static `map -> lidar` transform (without a TF tree RViz warns that the fixed
+  frame does not exist even though it renders), the dimmed raw overlay off (it shares coordinates
+  with the removed points and washes the red out), and a flat grey de-snowed cloud instead of
+  RViz's rainbow intensity ramp. All are asset-only settings on a copy of `snowclear.rviz`.
+- The earlier matplotlib hero render is gone; `tools/render_hero.py --banner` still produces the
+  flat bird's-eye pair for print.
 - **The READMEs open like a library homepage now.** The paper-style title is condensed to a name
   plus the method acronym (RITS), and the first screen is: title, one hero card (raw zoom with the
   removed returns in red → cleaned zoom), three sentences, a five-row fact table, then the install
