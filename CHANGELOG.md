@@ -21,6 +21,18 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   pipeline reports for the same frame.
 - **`tools/pcd_common.py`** — one reader for PCD files, index files and the confusion matrix,
   shared by the audit tool and the renderer, so a figure cannot disagree with a table.
+- **`tools/eval_baselines.sh`** — runs SnowClear and the compiled-in baselines (DROR / DSOR / SOR /
+  ROR) over the reported set - the 16 of 19 mirrored scenes that are not 14, 16 and 76, i.e. the
+  same 1 620 frames Table 1 reports - through `--mode eval_folders`, one CSV row per scene. The
+  evaluated set is staged as a symlink farm, because `eval_folders` walks whatever directories it
+  finds under `pcd_root`.
+- **`tools/gen_baseline_fig.py`** — Table 2 and Fig. 3 from those CSVs: precision / recall / F1 as
+  the macro average over scenes, with the latency under each method name. It prints the table as
+  markdown, so the README cannot drift from the measurement.
+- **`tools/render_baseline_clouds.py`** — Fig. 12: one frame, five detectors, one camera. Every
+  panel goes through `render_hero3d.draw_scene`, and the framing comes from the ground truth and
+  the ROI structure rather than from a method's own output, so no panel can flatter itself by
+  zooming somewhere convenient.
 - **Published figures**: `fig2_qualitative[_zh].png` (scene 35, reference frame),
   `fig10_qualitative_hard[_zh].png` (scene 16, recall-limited — most misses are ground truth
   beyond the ROI) and `fig11_comparison[_zh].png` (SnowClear against SOR on one frame), all
@@ -28,6 +40,11 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Changed
 
+- **Table 2 is measured, not `TODO`**: the four compiled-in baselines now run over the reported set
+  (16 scenes / 1 620 frames — the same frames as Table 1) instead of a 4-scene subset, so Table 2,
+  Fig. 3 and Fig. 12 all come out of one `tools/eval_baselines.sh` run. SnowClear keeps 92.82
+  macro F1 against 37.93 for the best baseline (SOR), 7.36 for DSOR, 6.80 for DROR and 1.76 for
+  ROR; the density filters earn their precision by returning almost nothing.
 - **The hero shows the detection outcome, not just the clouds**: four RViz displays — grey ROI
   structure, green true positives, blue misses, red false positives — named so the Displays tree is
   the legend, with `FlatColor` replacing RViz's rainbow intensity ramp and a low orbit camera

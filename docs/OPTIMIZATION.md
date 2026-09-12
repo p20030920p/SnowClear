@@ -179,7 +179,29 @@ Reading:
 
 ---
 
-## 7. Baselines (measured, same 4 scenes and the same pipeline)
+## 7. Baselines
+
+Two measurements of this repository's own re-implementations, both sharing the identical ROI gate,
+index mapping and evaluation path — so the comparison isolates the decision rule, not the plumbing.
+
+**On the reported set** (16 scenes / 1 620 frames, the frames Table 1 uses):
+
+| Method | P | R | F1 | ms/frame |
+|---|---:|---:|---:|---:|
+| DROR (Charron et al., 2018) | 85.54 | 3.57 | 6.80 | 1041 |
+| DSOR (Kurup & Bos, 2021) | 85.02 | 3.88 | 7.36 | 70 |
+| SOR (Rusu et al., 2008) | 89.24 | 25.56 | 37.93 | 110 |
+| ROR (Rusu, 2009) | 79.70 | 0.89 | 1.76 | 1013 |
+| **SnowClear (released)** | **96.69** | **89.97** | **92.82** | **≈ 10** |
+
+Reproduce with `bash tools/eval_baselines.sh <outdir>` (one CSV per method, one row per scene);
+`python3 tools/gen_baseline_fig.py --csv-dir <outdir> --latency-csv-dir <single-scene run>` prints
+this table as markdown and draws README Fig. 3, `tools/render_baseline_clouds.py` draws Fig. 12.
+Latencies are a single run on scene 35 (101 frames) at `OMP_NUM_THREADS=2`, the same protocol as
+Table 5; they move with machine load, F1 does not.
+
+**On the 4-scene subset** used by the rest of this document (scenes 35, 11, 14, 16 — it
+deliberately includes the two recall-limited scenes):
 
 | Method | P | R | F1 | ms/frame |
 |---|---:|---:|---:|---:|
@@ -189,14 +211,12 @@ Reading:
 | ROR (Rusu, 2009) | 74.80 | 0.98 | 1.92 | 619.7 |
 | **SnowClear (released)** | **95.47** | **68.60** | **77.56** | **8.1** |
 
-The ordering is unambiguous: 2.1× the F1 of the best baseline at 9× its speed. The pure-geometry
-filters fail in an informative way — their precision looks respectable *because* they remove
-almost nothing (recall < 7 % for DROR/DSOR/ROR), which is the expected behaviour of density-based
-outlier removal against volumetric snowfall.
-
-These are this repository's re-implementations sharing the identical ROI gate, index mapping and
-evaluation path, on 4 scenes — not the upstream authors' harnesses on the full 16-scene set.
-README Table 2 keeps its `TODO` cells for exactly that reason.
+The ordering is unambiguous on both sets: 2.1× the F1 of the best baseline on the hard subset,
+2.4× on the reported set. The pure-geometry filters fail in an informative way — their precision
+looks respectable *because* they remove almost nothing (recall < 4 % for DROR/DSOR/ROR), which is
+the expected behaviour of density-based outlier removal against volumetric snowfall. Our own
+number drops on the subset because scenes 14 and 16 are limited by the intensity ceiling of §3,
+a failure mode the baselines do not share — and they still lose by more than 2×.
 
 ---
 

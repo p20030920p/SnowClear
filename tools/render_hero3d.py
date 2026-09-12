@@ -110,6 +110,60 @@ def densest_cell(sx, sy, view, bins=18):
     return float(np.median(sx[m])), float(np.median(sy[m]))
 
 
+def draw_scene(ax, pts, cls, target, frame, dist, focal, view, fog) -> None:
+    """Ground grid, intensity-ramped structure, then the three outcome classes.
+
+    Split out of `render` so the baseline comparison draws every panel with exactly
+    the code that draws the hero: same camera, same palette, same point sizes. Panels
+    then differ only in which points each method filed under tp / fn / fp.
+    """
+    _, _, z = project(pts[cls["structure"] | cls["tp"] | cls["fn"] | cls["fp"]][:, :3],
+                      target, frame, dist, focal)
+    zlo, zhi = float(z.min()), float(z.max())
+    span = max(zhi - zlo, 1e-6)
+
+    # ---- ground grid ----------------------------------------------------
+    gseg, gcol = grid(view[0] * 1.4, view[1] * 1.4, view[2] * 1.4, view[3] * 1.4)
+    gx0, gy0, gz0 = project(gseg[:, 0, :], target, frame, dist, focal)
+    gx1, gy1, gz1 = project(gseg[:, 1, :], target, frame, dist, focal)
+    lines = np.stack([np.stack([gx0, gy0], axis=1),
+                      np.stack([gx1, gy1], axis=1)], axis=1)
+    zn = np.clip((0.5 * (gz0 + gz1) - zlo) / span, 0.0, 1.0)
+    alpha = np.clip(0.95 - 0.62 * zn, 0.12, 0.95)
+    rgb = np.array([matplotlib.colors.to_rgb(c) for c in gcol])
+    ax.add_collection(LineCollection(lines, colors=np.c_[rgb, alpha],
+                                     linewidths=0.7, zorder=1))
+
+    # ---- structure: intensity ramp, monochrome --------------------------
+    m = cls["structure"]
+    px, py, pz = project(pts[m][:, :3], target, frame, dist, focal)
+    inn = np.clip(pts[m][:, 3] / max(float(np.percentile(pts[:, 3], 99)), 1.0), 0, 1)
+    base = np.array(STRUCT_LO)[None, :] * (1 - inn)[:, None] + \
+        np.array(STRUCT_HI)[None, :] * inn[:, None]
+    depth = np.clip((pz - zlo) / span, 0, 1)
+    shade = fog * depth
+    bgc = np.array(matplotlib.colors.to_rgb(BG))[None, :]
+    rgb = base * (1 - shade)[:, None] + bgc * shade[:, None]
+    o = np.argsort(-pz)
+    ax.scatter(px[o], py[o], s=np.clip(3.4 * (dist / pz[o]) ** 2, 0.25, 6.0),
+               c=rgb[o], linewidths=0, marker="o", rasterized=True, zorder=2)
+
+    # ---- the three outcome classes --------------------------------------
+    # a hairline of background keeps neighbouring flakes apart, so a class reads as
+    # particles instead of one flat mass
+    for key, colour, size, order in (("tp", TP_C, 4.4, 3), ("fp", FP_C, 5.2, 4),
+                                     ("fn", FN_C, 13.5, 5)):
+        mm = cls[key]
+        if not mm.any():
+            continue
+        qx, qy, qz = project(pts[mm][:, :3], target, frame, dist, focal)
+        o = np.argsort(-qz)
+        ax.scatter(qx[o], qy[o],
+                   s=np.clip(size * (dist / qz[o]) ** 2, 1.1, 26.0),
+                   c=colour, linewidths=0.25, edgecolors=BG, marker="o",
+                   rasterized=True, zorder=order)
+
+
 def render(pts, cls, col, args) -> pathlib.Path:
     t = TXT[args.lang]
     fps = (matplotlib.font_manager.FontProperties(fname=CJK)
@@ -150,48 +204,7 @@ def render(pts, cls, col, args) -> pathlib.Path:
         grow = 0.5 * ((view[1] - view[0]) / want - (view[3] - view[2]))
         view[2] -= grow; view[3] += grow
 
-    # ---- ground grid ----------------------------------------------------
-    zlo, zhi = float(z.min()), float(z.max())
-    gseg, gcol = grid(view[0] * 1.4, view[1] * 1.4, view[2] * 1.4, view[3] * 1.4)
-    gx0, gy0, gz0 = project(gseg[:, 0, :], target, frame, dist, focal)
-    gx1, gy1, gz1 = project(gseg[:, 1, :], target, frame, dist, focal)
-    lines = np.stack([np.stack([gx0, gy0], axis=1),
-                      np.stack([gx1, gy1], axis=1)], axis=1)
-    zn = np.clip((0.5 * (gz0 + gz1) - zlo) / max(zhi - zlo, 1e-6), 0.0, 1.0)
-    alpha = np.clip(0.95 - 0.62 * zn, 0.12, 0.95)
-    rgb = np.array([matplotlib.colors.to_rgb(c) for c in gcol])
-    ax.add_collection(LineCollection(lines, colors=np.c_[rgb, alpha],
-                                     linewidths=0.7, zorder=1))
-
-    # ---- structure: intensity ramp, monochrome --------------------------
-    m = cls["structure"]
-    px, py, pz = project(pts[m][:, :3], target, frame, dist, focal)
-    inn = np.clip(pts[m][:, 3] / max(float(np.percentile(pts[:, 3], 99)), 1.0), 0, 1)
-    base = np.array(STRUCT_LO)[None, :] * (1 - inn)[:, None] + \
-        np.array(STRUCT_HI)[None, :] * inn[:, None]
-    depth = np.clip((pz - zlo) / max(zhi - zlo, 1e-6), 0, 1)
-    fog = args.fog * depth
-    bgc = np.array(matplotlib.colors.to_rgb(BG))[None, :]
-    rgb = base * (1 - fog)[:, None] + bgc * fog[:, None]
-    o = np.argsort(-pz)
-    ax.scatter(px[o], py[o], s=np.clip(3.4 * (dist / pz[o]) ** 2, 0.25, 6.0),
-               c=rgb[o], linewidths=0, marker="o", rasterized=True, zorder=2)
-
-    # ---- the three outcome classes --------------------------------------
-    sizes = {"tp": 4.4, "fn": 13.5, "fp": 5.2}
-    for key, colour, order in (("tp", TP_C, 3), ("fp", FP_C, 4), ("fn", FN_C, 5)):
-        mm = cls[key]
-        if not mm.any():
-            continue
-        qx, qy, qz = project(pts[mm][:, :3], target, frame, dist, focal)
-        d = np.clip((qz - zlo) / max(zhi - zlo, 1e-6), 0, 1)
-        o = np.argsort(-qz)
-        # a hairline of background keeps neighbouring flakes apart, so the class
-        # reads as particles instead of one flat mass
-        ax.scatter(qx[o], qy[o],
-                   s=np.clip(sizes[key] * (dist / qz[o]) ** 2, 1.1, 26.0),
-                   c=colour, linewidths=0.25, edgecolors=BG, marker="o",
-                   rasterized=True, zorder=order)
+    draw_scene(ax, pts, cls, target, frame, dist, focal, view, args.fog)
 
     n = {k: int(v.sum()) for k, v in cls.items()}
     prec = 100.0 * n["tp"] / max(n["tp"] + n["fp"], 1)

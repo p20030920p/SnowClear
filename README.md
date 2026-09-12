@@ -253,29 +253,49 @@ evaluation path, so the comparison isolates the decision rule rather than the pl
 
 | Method | Precision | Recall | F1 | ms / frame |
 |---|---:|---:|---:|---:|
-| DROR (Charron et al., CRV 2018) | TODO | TODO | TODO | TODO |
-| DSOR (Kurup & Bos, 2021) | TODO | TODO | TODO | TODO |
-| SOR (Rusu et al., 2008) | TODO | TODO | TODO | TODO |
-| ROR (Rusu, 2009) | TODO | TODO | TODO | TODO |
-| **SnowClear (released configuration)** | **96.6934** | **89.9765** | **92.8229** | **≈ 10** |
+| DROR (Charron et al., CRV 2018) | 85.5406 | 3.5708 | 6.8048 | 1041 |
+| DSOR (Kurup & Bos, 2021) | 85.0204 | 3.8813 | 7.3562 | 70 |
+| SOR (Rusu et al., 2008) | 89.2363 | 25.5615 | 37.9266 | 110 |
+| ROR (Rusu, 2009) | 79.6991 | 0.8938 | 1.7628 | 1013 |
+| **SnowClear (released configuration)** | **96.6947** | **89.9723** | **92.8210** | **≈ 10** |
 
-*Fig. 3 — Precision / recall / F1 of SnowClear against the non-learned baselines of Table 2.
-Slot: `docs/figures/fig3_comparison.png`.*
+![Precision, recall and F1 of SnowClear against DROR, DSOR, SOR and ROR, macro-averaged over the reported set](docs/figures/fig3_comparison.png)
+
+*Fig. 3 — Table 2 as a chart: macro-averaged precision / recall / F1 over the 16 scenes, with the
+per-frame latency under each method name. The two density filters that return almost nothing
+(DROR 3.6 %, ROR 0.9 % recall) post a respectable-looking precision, which is exactly why
+precision alone is a misleading summary here; SOR is the strongest baseline and SnowClear's F1
+is 2.4× its own. Regenerate with `python3 tools/gen_baseline_fig.py`.*
 
 > [!NOTE]
-> The `TODO` cells are deliberate: the paper's baseline numbers come from third-party
-> upstream harnesses that are not redistributed here, and this repository does not publish
-> numbers it cannot reproduce. Run the baselines with
-> `detector_type:=dror|dsor|sor|ror` through `snowclear_runner --mode eval_folders` to fill
-> them in. A 4-scene subset run with this repository's own re-implementations is in
-> [`OPTIMIZATION.md`](docs/OPTIMIZATION.md) §7: SnowClear 77.56 macro F1 against DROR 7.10,
-> DSOR 6.93, SOR 36.36 and ROR 1.92.
+> These are this repository's own re-implementations of the four filters, compiled into the core
+> and run through `snowclear_runner --mode eval_folders` on the **same 1 620 frames**, with the
+> same ROI gate, index mapping and evaluation path as Table 1 — reproduce with
+> `bash tools/eval_baselines.sh <outdir>`, which writes one CSV per method, and
+> `python3 tools/gen_baseline_fig.py --csv-dir <outdir> --latency-csv-dir <single-scene run>` for Fig. 3
+> and this table. The paper's numbers for these baselines come from third-party upstream
+> harnesses that are not redistributed here, so they are not quoted.
+> The density filters miss almost everything (0.89–3.88 % recall) and
+> their precision is misleading: at that recall, SOR returning 25.6
+> % of the annotated snow is the best of them at F1 37.93, against
+> 2.4× that for SnowClear. The same filters on the 4-scene
+> subset are in [`OPTIMIZATION.md`](docs/OPTIMIZATION.md) §7.
 
 ![SnowClear against SOR on the reference frame: precision 96.58 vs 70.21, recall 96.04 vs 56.05](docs/figures/fig11_comparison.png)
 
 *Fig. 11 — The same frame, SnowClear (left) against SOR (right) on the identical pipeline.
 SOR's panel is dominated by false positives (purple) and misses (blue); F1 96.31 against 62.33.
 A qualitative companion to Table 2 — regenerate with `--detection2`.*
+
+![Five detectors on the reference frame: ground truth, then SnowClear, DROR, DSOR, SOR and ROR, each coloured by detection outcome](docs/figures/fig12_baselines.png)
+
+*Fig. 12 — One frame, five detectors, one camera: ground truth, then SnowClear, DROR, DSOR, SOR
+and ROR on frame `042126`, every panel drawn by the same renderer with the same palette and framed
+by the ground truth rather than by each method's own output. The density filters return almost
+nothing — the blue mass is annotated snow they never flagged; SOR returns a comparable number of
+points but a third of them carry no annotation (red); SnowClear is the only panel whose green
+matches the ground-truth panel. Panel numbers are per-frame and in-ROI; the 1 620-frame macro
+average is Table 2. Regenerate with `python3 tools/render_baseline_clouds.py`.*
 
 ### Table 3 — Ablation
 

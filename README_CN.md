@@ -236,27 +236,43 @@ TP / FN / FP 拆分，并在图内引出本帧 P / R / F1 与最密集的误差�
 
 | 方法 | Precision | Recall | F1 | ms/帧 |
 |---|---:|---:|---:|---:|
-| DROR（Charron et al., CRV 2018） | TODO | TODO | TODO | TODO |
-| DSOR（Kurup & Bos, 2021） | TODO | TODO | TODO | TODO |
-| SOR（Rusu et al., 2008） | TODO | TODO | TODO | TODO |
-| ROR（Rusu, 2009） | TODO | TODO | TODO | TODO |
-| **SnowClear（发布配置）** | **96.6934** | **89.9765** | **92.8229** | **≈ 10** |
+| DROR（Charron et al., CRV 2018） | 85.5406 | 3.5708 | 6.8048 | 1041 |
+| DSOR（Kurup & Bos, 2021） | 85.0204 | 3.8813 | 7.3562 | 70 |
+| SOR（Rusu et al., 2008） | 89.2363 | 25.5615 | 37.9266 | 110 |
+| ROR（Rusu, 2009） | 79.6991 | 0.8938 | 1.7628 | 1013 |
+| **SnowClear（发布配置）** | **96.6947** | **89.9723** | **92.8210** | **≈ 10** |
 
-*图 3 —— SnowClear 与表 2 中各非学习式基线的 Precision / Recall / F1 对比。
-图片位：`docs/figures/fig3_comparison.png`。*
+![SnowClear 与 DROR、DSOR、SOR、ROR 的精确率 / 召回率 / F1（报告集宏平均）](docs/figures/fig3_comparison_zh.png)
+
+*图 3 —— 表 2 的图形化：16 个场景宏平均的精确率 / 召回率 / F1，方法名下为单帧耗时。两个几乎不
+返回任何点的密度滤波器（DROR 召回 3.6 %、ROR 0.9 %）却有着体面的精确率，这正是"只看精确率会被
+误导"的原因；SOR 是最强基线，SnowClear 的 F1 是它的 2.4 倍。用 `python3 tools/gen_baseline_fig.py`
+复现。*
 
 > [!NOTE]
-> 表中的 `TODO` 是刻意保留的：论文里基线的数字来自第三方上游实现，本仓库不重新分发它们，
-> 因此**不发布无法自行复现的数字**。用 `detector_type:=dror|dsor|sor|ror` 配合
-> `snowclear_runner --mode eval_folders` 跑一遍即可填上。本仓库自实现的 4 场景子集结果见
-> [`OPTIMIZATION.md`](docs/OPTIMIZATION.md) §7：SnowClear 宏平均 F1 77.56，DROR 7.10、
-> DSOR 6.93、SOR 36.36、ROR 1.92。
+> 表中基线是本仓库对这四个滤波器的自实现，已编入核心，并用 `snowclear_runner --mode
+> eval_folders` 在**同一批 1 620 帧**、与表 1 完全相同的 ROI 门控 / 索引映射 / 评测路径下测得 ——
+> 复现方式：`bash tools/eval_baselines.sh <outdir>`（每个方法一个 CSV），再用
+> `python3 tools/gen_baseline_fig.py --csv-dir <outdir> --latency-csv-dir <单场景运行>`
+> 生成图 3 与本表。论文中这些基线的数字来自未随仓库分发的第三方实现，故不引用。
+> 基于密度的滤波器几乎什么都检不出（召回 0.89–3.88 %），其精确率具有
+> 误导性：在这个召回水平上，SOR 以召回 25.6 % 成为其中最好的一个
+> （F1 37.93），而 SnowClear 的 F1 是它的 2.4 倍。
+> 同样的滤波器在 4 场景子集上的结果见 [`OPTIMIZATION.md`](docs/OPTIMIZATION.md) §7。
 
 ![同一帧上 SnowClear 与 SOR 的对比：精确率 96.58 对 70.21，召回率 96.04 对 56.05](docs/figures/fig11_comparison_zh.png)
 
 *图 11 —— 同一帧上 SnowClear（左）与 SOR（右），两者共用完全相同的流水线。SOR 面板被误检
 （紫色）与漏检（蓝色）占满；F1 96.31 对 62.33。这是表 2 的定性对照，用 `--detection2`
 重新生成。*
+
+![同一帧上五种检测器：真值标注、SnowClear、DROR、DSOR、SOR、ROR，各自按检测结果着色](docs/figures/fig12_baselines_zh.png)
+
+*图 12 —— 同一帧、五种检测器、同一相机：真值标注，以及 SnowClear、DROR、DSOR、SOR、ROR 在帧
+`042126` 上的结果。所有面板由同一渲染器绘制、共用配色，取景来自真值而非各方法自身的输出。基于
+密度的滤波器几乎不返回任何点 —— 大片蓝色就是它们从未标记的标注雪点；SOR 返回的点数相当，但其中
+三分之一并无标注（红色）；只有 SnowClear 面板的绿色与真值面板吻合。面板内数值为单帧 ROI 内统计，
+1 620 帧宏平均见表 2。用 `python3 tools/render_baseline_clouds.py` 复现。*
 
 ### 表 3 —— 消融实验
 
