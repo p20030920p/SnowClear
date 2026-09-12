@@ -13,6 +13,7 @@ export DISPLAY=:0 ROS_DOMAIN_ID=42 ROS_LOCALHOST_ONLY=1
 STAGE=${STAGE:-$HOME/.cache/snowclear_shots}; mkdir -p "$STAGE"
 DATA=${SNOWCLEAR_DATA:?set SNOWCLEAR_DATA to a WADS mirror (see docs/DATASET.md)}
 FRAME=$DATA/pcd_output/35/velodyne/042126.pcd
+GT=$DATA/result/35/042126.txt
 DET=$PWD/testdata/reference_042126.txt   # the released reference output for this frame
 CFG=${RVCFG:-src/snowclear_ros/rviz/snowclear.rviz}
 
@@ -27,7 +28,8 @@ ros2 run tf2_ros static_transform_publisher --frame-id map --child-frame-id lida
 TF=$!
 sleep 2
 echo "      publishing three clouds at 0.5 Hz for 6 cycles"
-python3 tools/rviz_feed.py --pcd "$FRAME" --detection "$DET" --cycles 6 --rate 0.5 \
+python3 tools/rviz_feed.py --pcd "$FRAME" --detection "$DET" --gt "$GT" \
+    --cycles 6 --rate 0.5 \
     > "$STAGE/feed.log" 2>&1
 echo "[3/4] settling"
 sleep 4

@@ -28,6 +28,11 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Changed
 
+- **The hero shows the detection outcome, not just the clouds**: four RViz displays — grey ROI
+  structure, green true positives, blue misses, red false positives — named so the Displays tree is
+  the legend, with `FlatColor` replacing RViz's rainbow intensity ramp and a low orbit camera
+  (distance 22, pitch 0.20) for an actual perspective. `tools/rviz_feed.py` derives the four classes
+  from the released reference output and the ground truth.
 - **The README hero is a real RViz screenshot** of the shipped layout: grey de-snowed cloud,
   the removed points in red, every display reporting `Status: Ok`. `tools/capture_rviz_screenshot.sh`
   reproduces it — RViz first, then a light publisher that sends the three clouds straight from the

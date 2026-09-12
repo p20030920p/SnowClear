@@ -19,12 +19,11 @@
 
 </div>
 
-![在 RViz 中用本仓库自带布局显示：灰色为去雪点云，红色为剔除的 6 957 个雪点](docs/figures/fig0_rviz.png)
+![RViz 中显示参考帧的检测结果：灰色为结构，绿色为正确检出，蓝色为漏检，红色为误检](docs/figures/fig0_rviz.png)
 
-*参考帧 `042126` 在 RViz 中的真实截图，使用本仓库自带的布局
-（[`snowclear.rviz`](src/snowclear_ros/rviz/snowclear.rviz)）：灰色为去雪后的点云，红色为
-SnowClear 剔除的 6 957 个点，所有 display 均为 `Status: Ok`。用
-`bash tools/capture_rviz_screenshot.sh` 复现，配图设置见
+*参考帧 `042126` 在 RViz 中的真实截图：灰色为 ROI 内结构，**绿色为正确检出（6 719）**，
+**蓝色为漏检（22）**，**红色为误检（238）**；左侧 Displays 树里的名字就是图例，所有 display
+均为 `Status: Ok`。用 `bash tools/capture_rviz_screenshot.sh` 复现，设置见
 [`docs/figures/README.md`](docs/figures/README.md)。*
 
 SnowClear 逐点去除 LiDAR 扫描中的降雪噪声：纯 CPU 约 10 ms/帧，**无需训练、无学习权重**。

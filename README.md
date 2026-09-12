@@ -19,13 +19,13 @@
 
 </div>
 
-![RViz running the shipped SnowClear layout: the de-snowed cloud in grey and the 6 957 removed points in red](docs/figures/fig0_rviz.png)
+![RViz showing the detection outcome on the reference frame: grey structure, green true positives, blue misses, red false positives](docs/figures/fig0_rviz.png)
 
-*Reference frame `042126` in RViz, using this repository's own layout
-([`snowclear.rviz`](src/snowclear_ros/rviz/snowclear.rviz)): the de-snowed cloud in grey, the
-6 957 points SnowClear removes in red, every display reporting `Status: Ok`. Reproduce with
-`bash tools/capture_rviz_screenshot.sh` — the recipe and the display settings are in
-[`docs/figures/README.md`](docs/figures/README.md).*
+*Reference frame `042126` in RViz: grey is the ROI structure, **green the 6 719 snow points
+detected and annotated**, **blue the 22 annotated points missed**, **red the 238 detected points
+that are not annotated**. The display names in the tree are the legend, and every display reports
+`Status: Ok`. Reproduce with `bash tools/capture_rviz_screenshot.sh`; the settings are documented
+in [`docs/figures/README.md`](docs/figures/README.md).*
 
 SnowClear removes snowfall noise from a LiDAR scan **per point**, at ≈10 ms per frame on CPU,
 with **no training and no learned weights**. The algorithm core links only PCL, OpenMP and TBB —
