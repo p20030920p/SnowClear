@@ -307,11 +307,11 @@ average is Table 2. Regenerate with `python3 tools/render_baseline_clouds.py`.*
 | Configuration | Macro F1 | Δ F1 | Source |
 |---|---:|---:|---|
 | **Released configuration (full)** | **92.8229** | — | Table 1 |
-| w/o zero-intensity surface suppression | TODO | **≈ −2.2 pp** | measured *delta*, [`METHOD.md`](docs/METHOD.md) §4 |
+| w/o zero-intensity surface suppression | 74.94 | **−2.62 pp** | measured, 4-scene subset, Fig. 4 |
 | ROI gate + `I = 0` only (no threshold, no score, no height term) | 90.12 | −2.70 pp (derived) | measured, [`METHOD.md`](docs/METHOD.md) §2 |
-| + planarity term (`enable_planarity_calculation`) | TODO | ≈ 0 | measured ≈ 0 on 100 frames, [`METHOD.md`](docs/METHOD.md) §5 |
-| + density term (`enable_density_calculation`) | TODO | negative | [`METHOD.md`](docs/METHOD.md) §5 |
-| + feature entropy (`enable_feature_entropy`) | TODO | negative | [`METHOD.md`](docs/METHOD.md) §5 |
+| + planarity term (`enable_planarity_calculation`) | 65.17 | **−12.39 pp** | measured, 4-scene subset, Fig. 4 |
+| + density term (`enable_density_calculation`) | 56.38 | **−21.18 pp** | measured, 4-scene subset, Fig. 4 |
+| + feature entropy (`enable_feature_entropy`) | 77.34 | **−0.22 pp** | measured, 4-scene subset, Fig. 4 |
 | + grid-search optimisation (first 3 frames) | 92.8229 | 0 | no additional gain; optimiser is a no-op |
 | + sensor-height-derived ROI (`enable_sensor_height_roi`) | TODO | changes numerics | default off by design, [`METHOD.md`](docs/METHOD.md) §6 |
 
@@ -365,12 +365,21 @@ Measured on scene 35 (101 frames, `OMP_NUM_THREADS=2`), per frame:
 | Parameter optimisation (line 22) | **0.0001** | returns the defaults immediately |
 | `α(r)` threshold LUT, replacing per-point `tgamma`/`pow` | 1.140 → 0.179 | 1 cm table, 4 001 entries, built once per frame |
 | Elevation gate, fast path replacing `asin` per point | 1.816 → 1.166 | −36 % on the pre-ROI cloud, ≈ 20万点/帧 |
-| ROI gate total / per-point decision total | TODO | fill from `verbose:=true` |
+| ROI prefilter total (height / range / elevation) | 2.05 | measured, Fig. 6; the elevation fast path's own saving is below this timer's resolution |
+| Snow filtering total (threshold + veto + score) | 3.28 | measured, Fig. 6; `use_threshold_lut:=false` costs a paired +1.53 ms |
 | **End-to-end, per frame** | **≈ 10** | Table 1 |
 
-*Fig. 6 — Per-stage frame-time breakdown, with the measured before/after of the two
-equivalence-preserving optimisations (elevation gate, `α(r)` LUT). Slot:
-`docs/figures/fig6_runtime.png`.*
+![Frame time by stage for the released configuration, and the measured effect of the two equivalence-preserving fast paths](docs/figures/fig6_runtime.png)
+
+*Fig. 6 — Where the frame time goes: scene 35, 101 frames, `OMP_NUM_THREADS=2`, best of three
+runs because the machine is shared. The three blue/purple/green bars are the algorithm time
+(9.39 ms); I/O and evaluation are shown greyed because Table 1 excludes them. Panel (b) judges
+each fast path on the stage it can touch, pairing the runs round by round: switching the `α(r)`
+LUT off costs a paired **+1.53 ms** (3/3 runs), while the elevation fast path's own saving is
+below this timer's resolution — its 0.65 ms in Table 5 comes from the finer instrumentation of
+[`METHOD.md`](docs/METHOD.md) §5. All three configurations print the same F1, which is what
+makes the comparison an equivalence claim rather than a trade. Regenerate with
+`bash tools/measure_timing.sh <label> [key:=value …]` and `python3 tools/gen_runtime_fig.py <dir>`.*
 
 ### Table 6 — Robustness to sensor change
 

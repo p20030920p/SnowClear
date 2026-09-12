@@ -212,8 +212,10 @@ frames (`OMP_NUM_THREADS=2`):
 <!-- Fig. 6 — drop docs/figures/fig6_runtime.png in, then uncomment:
 ![Per-stage frame-time breakdown](figures/fig6_runtime.png)
 -->
-*Fig. 6 — Per-stage frame-time breakdown, and the misleading bucket split the table above
-documents. Slot: [`figures/fig6_runtime.png`](figures/README.md).*
+![Frame time by stage, and the measured effect of the two equivalence-preserving fast paths](figures/fig6_runtime.png)
+
+*Fig. 6 — Per-stage frame time on scene 35 and what the fast paths are worth; see
+`tools/measure_timing.sh` and `tools/gen_runtime_fig.py` to regenerate.*
 
 ---
 

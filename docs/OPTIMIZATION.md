@@ -135,6 +135,32 @@ and surface-attached — so widening it admits mostly non-snow: at best 0.18 pp 
 ceiling is a property of the whole rule, not of the gate alone, which is why item A above cannot be
 recovered on its own and why the only lever with real headroom is the ceiling (roadmap item 1).
 
+### The ceiling is real, and a geometric branch on it does not pay (measured)
+
+`python3 tools/audit_high_intensity.py` simulates the released rule frame by frame (it reproduces
+the 4-scene metrics to 0.03 pp and the A/B stages of the budget above exactly) and asks what the
+bright band is worth:
+
+| Measurement (406 frames, per-frame macro) | Value |
+|---|---:|
+| `I >= 2` annotated pool inside the ROI | 9.97 % of in-ROI ground truth (6.24 % of all of it) |
+| Admitted by the released rule | **0** — structurally, confirmed exhaustively |
+| Non-snow points in the same intensity band | 13 948 352, **19x** the pool (34.4k / frame) |
+| Median height above ground, ground truth vs non-snow | 0.586 m vs 0.341 m |
+| Naive branch (admit every in-ROI `I >= 2`) | +6.24 pp recall, −63.4 pp precision, **−36.97 pp F1** |
+| Best geometric cut found (`h >= 0.50 m` and support `<= 4`) | +0.02 pp recall for **−0.10 pp F1** |
+
+Height and support separate the two classes at the median and nowhere else: every cut tight
+enough to keep false positives near today's 544/frame retains 0.2–5 % of the pool. So roadmap
+item 1 has to mean a genuinely discriminative score over `(s, h_ag, r, local geometry)` — a
+geometric gate on the bright band is not the lever. Scene 16 is the single place a cheap version
+is F1-neutral (+0.01 pp, branch precision 43 %), which is where to pilot it.
+
+One correction to §2 the same audit prints: the published 6.67 % intensity-ceiling share uses
+`IT_MAX = 0.1206`, the mid-branch local threshold, but the binding condition is `score > 0.75`,
+i.e. `I < 0.2132·T`; 1 116 of 4.7M accepted points (0.02 %) sit in that gap. The `I >= 2`
+conclusion is unaffected, since that pool is inadmissible under either bound.
+
 ## 4. The "adaptive" intensity threshold is pinned at its lower clamp
 
 Measured over 406 frames (`Tg = clamp(0.8·Q1, 2.5, 8.0)`, the value the CLI logs as

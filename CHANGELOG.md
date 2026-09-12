@@ -33,6 +33,15 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   panel goes through `render_hero3d.draw_scene`, and the framing comes from the ground truth and
   the ROI structure rather than from a method's own output, so no panel can flatter itself by
   zooming somewhere convenient.
+- **`tools/measure_timing.sh`** and **`tools/gen_runtime_fig.py`** — Fig. 6, the frame-time
+  budget. The figure judges each equivalence-preserving switch on the stage it can touch and
+  pairs the runs round by round, because on this shared machine a single pass can be 40 % off the
+  next one: the `α(r)` LUT is worth a paired +1.53 ms (3/3 runs) and the elevation fast path is
+  below the coarse timers' resolution. All configurations print the same F1, which the script
+  checks before drawing an equivalence claim.
+- **`tools/audit_high_intensity.py`** — the bright-band measurement behind OPTIMIZATION §3: the
+  `I >= 2` pool is 6.24 % of all ground truth, non-snow outnumbers it 19:1 in the same band, and
+  the best geometric cut buys +0.02 pp of recall for −0.10 pp of F1. Verdict: no opt-in switch.
 - **`--mode roi_variants` in `tools/audit_error_budget.py`** and **Fig. 8**
   (`tools/gen_ceiling_fig.py`) — the ground-truth budget per scene, and the measurement that closes
   the ROI direction: widening the gate to `z <= 4 m`, `r <= 25 m` and `-30 deg` recovers at most

@@ -283,11 +283,11 @@ TP / FN / FP 拆分，并在图内引出本帧 P / R / F1 与最密集的误差�
 | 配置 | 宏平均 F1 | Δ F1 | 依据 |
 |---|---:|---:|---|
 | **发布配置（完整）** | **92.8229** | — | 表 1 |
-| 去掉零强度表面抑制 | TODO | **≈ −2.2 pp** | 实测*增量*，[`METHOD.md`](docs/METHOD.md) §4 |
+| 去掉零强度表面抑制 | 74.94 | **−2.62 pp** | 实测，4 场景子集，图 4 |
 | 仅 ROI 门控 + `I = 0`（无阈值、无得分、无高度项） | 90.12 | −2.70 pp（推算） | 实测，[`METHOD.md`](docs/METHOD.md) §2 |
-| 加入平面度项（`enable_planarity_calculation`） | TODO | ≈ 0 | 100 帧实测贡献 ≈ 0，[`METHOD.md`](docs/METHOD.md) §5 |
-| 加入密度项（`enable_density_calculation`） | TODO | 负贡献 | [`METHOD.md`](docs/METHOD.md) §5 |
-| 加入特征熵（`enable_feature_entropy`） | TODO | 负贡献 | [`METHOD.md`](docs/METHOD.md) §5 |
+| 加入平面度项（`enable_planarity_calculation`） | 65.17 | **−12.39 pp** | 实测，4 场景子集，图 4 |
+| 加入密度项（`enable_density_calculation`） | 56.38 | **−21.18 pp** | 实测，4 场景子集，图 4 |
+| 加入特征熵（`enable_feature_entropy`） | 77.34 | **−0.22 pp** | 实测，4 场景子集，图 4 |
 | 加入网格搜索优化（前 3 帧） | 92.8229 | 0 | 无额外收益；优化器是空操作 |
 | 加入安装高度导出 ROI（`enable_sensor_height_roi`） | TODO | 会改变数值 | 设计上默认关闭，[`METHOD.md`](docs/METHOD.md) §6 |
 
@@ -338,11 +338,18 @@ TP / FN / FP 拆分，并在图内引出本帧 P / R / F1 与最密集的误差�
 | 参数优化（第 22 行） | **0.0001** | 直接返回默认值 |
 | `α(r)` 阈值查表，取代逐点 `tgamma`/`pow` | 1.140 → 0.179 | 1 cm 表、4 001 项，逐帧构建一次 |
 | 仰角门控快路径，取代逐点 `asin` | 1.816 → 1.166 | 在 ROI 前的全量点云上省 36%（≈ 20万点/帧） |
-| ROI 门控合计 / 逐点判定合计 | TODO | 用 `verbose:=true` 补齐 |
+| ROI 预筛合计（高度 / 距离 / 仰角） | 2.05 | 实测，图 6；仰角快速路径自身的收益低于该计时器分辨率 |
+| 雪点滤波合计（阈值 + 否决 + 打分） | 3.28 | 实测，图 6；`use_threshold_lut:=false` 需多花配对 +1.53 ms |
 | **端到端，每帧** | **≈ 10** | 表 1 |
 
-*图 6 —— 逐阶段单帧耗时分解，并给出两项"数学等价"优化（仰角门控、`α(r)` 查表）的前后对比。
-图片位：`docs/figures/fig6_runtime.png`。*
+![发布配置的逐阶段单帧耗时，以及两个数学等价快速路径的实测影响](docs/figures/fig6_runtime.png)
+
+*图 6 —— 单帧时间花在哪里：场景 35、101 帧、`OMP_NUM_THREADS=2`，取三轮中最快的一轮（本机为共享
+机器）。蓝/紫/绿三根是算法时间（9.39 ms）；读盘与评估置灰，因为表 1 不计入它们。(b) 中每个开关只在
+它真正触及的阶段上判定，并按轮配对：关掉 `α(r)` 查表要多花 **+1.53 ms**（3/3 轮一致），而仰角快速
+路径自身的收益低于这套计时器的分辨率 —— 表 5 中它的 0.65 ms 来自 [`METHOD.md`](docs/METHOD.md) §5
+更细的插桩。三个配置打印的 F1 完全相同，这才使该对比成为等价性结论而非取舍。复现：
+`bash tools/measure_timing.sh <标签> [key:=value …]`，再用 `python3 tools/gen_runtime_fig.py <目录>`。*
 
 ### 表 6 —— 换传感器时的鲁棒性
 
