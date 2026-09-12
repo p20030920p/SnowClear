@@ -165,8 +165,8 @@ Published as [`figures/fig1_per_scene.png`](figures/fig1_per_scene.png).*
   <!-- Fig. 8 — drop docs/figures/fig8_gt_ceiling.png in, then uncomment:
   ![Recall ceiling imposed by the ROI gate, by scene](figures/fig8_gt_ceiling.png)
   -->
-  *Fig. 8 — Recall ceiling imposed by the ROI gate, by scene. Slot:
-  [`figures/fig8_gt_ceiling.png`](figures/README.md).*
+  *Fig. 8 — Recall ceiling imposed by the ROI gate, by scene. Published as
+  [`figures/fig8_gt_ceiling.png`](figures/fig8_gt_ceiling.png).*
 * To save the detection indices for an independent audit:
 
   ```bash
