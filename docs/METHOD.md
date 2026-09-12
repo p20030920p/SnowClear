@@ -80,7 +80,8 @@ so detection requires `S > 0.75`, i.e.
 ```
 
 Because `T ≤ 0.8 · Tg ≤ 0.8 · 8.0 = 6.4` in every frame, the acceptance region is bounded by
-`I < 0.2132 · 6.4 = 1.36` at the very best, and `I < 0.19` for a point sitting on the ground
+`I < 0.2132 · 6.4 = 1.36` at the very best — and 0.43–1.35 once the ceiling is solved
+self-consistently, §3 — and `I < 0.19` for a point sitting on the ground
 (`hag = 0`). The surface veto is not involved in this bound — it only ever **removes** points.
 
 Measured on the released build:
@@ -102,9 +103,10 @@ by the surface veto.
 <!-- Fig. 5 — drop docs/figures/fig5_acceptance.png in, then uncomment:
 ![Acceptance region of the released decision function](figures/fig5_acceptance.png)
 -->
-*Fig. 5 — Acceptance region of the released decision function in the `(I/T, h_ag)` plane: the
-`s > 0.75` requirement implied by the two-term score, and the resulting ceiling. Slot:
-[`figures/fig5_acceptance.png`](figures/README.md).*
+![Acceptance region of the released decision function and the intensity ceiling it implies](figures/fig5_acceptance.png)
+
+*Fig. 5 — The `S > 0.75` requirement implied by the two-term score, and the ceiling it puts on the
+intensity. Regenerate with `python3 tools/gen_acceptance_fig.py`.*
 
 > **Practical implication.** On this dataset, ground truth snow is itself dominated by
 > `I ≈ 0` points. A rule consisting of the ROI gate plus `I = 0` already reproduces
@@ -126,6 +128,15 @@ T(r, I)   = s · Tg · (1 − α(r)·h(I)) + slope · max(0, r − r0)
 T         = max(2.0, min(20.0, T(r, I)))               # the upper clamp never binds
 ```
 
+The **lower** clamp is the one that binds. For any `Tg ≤ 2.5` the raw expression is `≤ 2.0` for
+every `(r, I)`, so `T ≡ 2.0` and the `α(r)` shape disappears completely; `Tg` sits on that floor in
+69.7 % of frames ([`OPTIMIZATION.md`](OPTIMIZATION.md) §4), which makes the released threshold a
+constant on most frames and the "range-adaptive threshold" a property of the frames that happen to
+sit above the floor. It also tightens the ceiling: solving `I = 0.2132·T(r, I)` self-consistently
+gives `I < 0.426` at the floor, `0.951` at the `α` peak and `1.352` at the ROI edge, against the
+`1.36` supremum of §2 — which requires `I ≥ 255` to be attained, i.e. it is never the operating
+point. [`figures/fig9_threshold_curve.png`](figures/fig9_threshold_curve.png) draws both.
+
 `α(r)` depends only on range, and `Γ(k)` is a per-frame constant, so the whole α curve is
 built once per frame into a 4 001-entry LUT over 0–40 m at 1 cm resolution
 (`use_threshold_lut`, a measured 1.140 ms → 0.179 ms per ROI frame).
@@ -133,8 +144,13 @@ built once per frame into a 4 001-entry LUT over 0–40 m at 1 cm resolution
 <!-- Fig. 9 — drop docs/figures/fig9_threshold_curve.png in, then uncomment:
 ![The released threshold T(r, I) and the Gamma-shaped alpha(r)](figures/fig9_threshold_curve.png)
 -->
-*Fig. 9 — `T(r, I)` for several intensities, with `Tg = clamp(0.8·Q1, 2.5, 8.0)` and the
-`α(r)` Gamma curve underneath. Slot: [`figures/fig9_threshold_curve.png`](figures/README.md).*
+![The released threshold T(r, I), the alpha(r) Gamma weight behind it, and the per-frame base threshold](figures/fig9_threshold_curve.png)
+
+*Fig. 9 — (a) `T(r, I)` at the clamp ceiling, the `I = 0` curve showing where the range term does its
+work; (b) the `α(r)` Gamma weight, peaked at 2.74 m — this is the entire range dependence of `T`;
+(c) the per-frame base threshold `Tg = clamp(0.8·Q1, 2.5, 8.0)` with the measured `Q1`
+distribution, which is why the released configuration runs on the clamp floor in 69.7 % of frames.
+Regenerate with `python3 tools/gen_threshold_fig.py`.*
 
 > **Caveat on the source of `Tg`.** `adaptive_intensity_threshold()` is gated by
 > `use_adaptive_intensity_threshold` (on) and computes `0.8·Q1` plus optional complexity and

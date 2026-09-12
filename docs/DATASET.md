@@ -128,8 +128,9 @@ reported separately rather than deleted, because they are informative:
 | 16 | 95.82 | 44.13 | 59.74 |
 | 76 (5 frames) | 97.85 | 98.84 | 98.34 |
 
-Including them moves the macro average from `96.6934 / 89.9765 / 92.8229` to
-`96.5654 / 85.4256 / 90.0295`.
+Including them moves the macro average over scenes from `96.6934 / 89.9765 / 92.8229` to
+`96.5654 / 86.1053 / 90.0295`. (Both rows are unweighted means over scenes; weighting by frame
+count instead gives 85.43 for the all-19 recall, because scene 76 holds only 5 frames.)
 
 Scenes 14 and 16 are **recall-limited**: precision stays at 94–96 %, so the detector is not
 hallucinating snow, it is failing to reach snow that the ground truth marks. The cause is

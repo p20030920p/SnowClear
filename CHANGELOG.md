@@ -33,6 +33,19 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   panel goes through `render_hero3d.draw_scene`, and the framing comes from the ground truth and
   the ROI structure rather than from a method's own output, so no panel can flatter itself by
   zooming somewhere convenient.
+- **`tools/gen_per_scene_fig.py`** — Fig. 1: per-scene precision / recall / F1 over the 19 mirrored
+  scenes with the 16-scene reported set shaded. It reproduces every documented per-scene number and
+  flags drift; the same run is what surfaced the mixed weighting in the all-19 row (below).
+- **`tools/gen_ablation_fig.py`** — Fig. 4: macro-F1 delta per switch on the 4-scene subset, with
+  the released configuration and the `ROI + I = 0` rule as reference lines. Every delta reproduces
+  `OPTIMIZATION.md` §6 to within 0.05 pp; the grid-search optimiser is confirmed as a no-op in F1
+  but not in time (+0.0012 pp for 4.2× the frame time).
+- **`tools/gen_acceptance_fig.py`** / **`tools/gen_threshold_fig.py`** — Fig. 5 and Fig. 9, analytic:
+  the acceptance region of the released decision function in the `(I/T, h_ag)` plane with the
+  intensity ceiling it implies, and `T(r, I)` with the `α(r)` weight and the per-frame
+  `Tg = clamp(0.8·Q1, 2.5, 8.0)` behind it. No dataset and no arguments — they evaluate the shipped
+  equations in closed form, and mark the measured facts (69.7 % of frames on the clamp floor,
+  largest detected `I = 1`) on the curves.
 - **Published figures**: `fig2_qualitative[_zh].png` (scene 35, reference frame),
   `fig10_qualitative_hard[_zh].png` (scene 16, recall-limited — most misses are ground truth
   beyond the ROI) and `fig11_comparison[_zh].png` (SnowClear against SOR on one frame), all
@@ -40,6 +53,9 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Changed
 
+- **The all-19 row no longer mixes weightings**: its recall was the frame-weighted mean while its
+  precision and F1 were macro-over-scenes. Corrected to 86.1053 in `README.md`, `README_CN.md` and
+  `DATASET.md`; the 16-scene reported-set row is unaffected.
 - **Table 2 is measured, not `TODO`**: the four compiled-in baselines now run over the reported set
   (16 scenes / 1 620 frames — the same frames as Table 1) instead of a 4-scene subset, so Table 2,
   Fig. 3 and Fig. 12 all come out of one `tools/eval_baselines.sh` run. SnowClear keeps 92.82

@@ -234,8 +234,13 @@ not shipped — see [`docs/DATASET.md`](docs/DATASET.md).
 | F1 recomputed from the mean P / R | — | — | 93.2141 | — |
 | Pooled over 1 620 frames | 96.8927 | 88.7047 | 92.6181 | — |
 
-*Fig. 1 — Per-scene precision / recall / F1 across the 19 mirrored scenes, with the 16-scene
-reported set marked. Slot: `docs/figures/fig1_per_scene.png`.*
+![Per-scene precision, recall and F1 across the 19 mirrored scenes, with the 16-scene reported set shaded](docs/figures/fig1_per_scene.png)
+
+*Fig. 1 — Every mirrored scene under the released configuration. The shaded band is the 16-scene
+reported set of Table 1 and the dashed lines are its macro average; the two scenes that fall off it
+(14 and 16) are the recall-limited ones reported separately in Table 4, and scene 76 holds 5 frames.
+Regenerate with `python3 tools/gen_per_scene_fig.py <csv-dir>` after one `eval_folders` pass — the
+script prints the per-scene table and checks it against the documented numbers.*
 
 ![Qualitative comparison on the reference frame 042126: raw scan, ground truth, detection outcome with per-frame precision/recall/F1, and the de-snowed cloud](docs/figures/fig2_qualitative.png)
 
@@ -314,12 +319,22 @@ Measured single-switch ablation on the 4-scene subset, including the two disable
 [`OPTIMIZATION.md`](docs/OPTIMIZATION.md) §6 (planarity −12.4 pp, density −21.2 pp, entropy
 −0.2 pp, surface suppression −2.6 pp).
 
-*Fig. 4 — Module-wise ablation: macro-F1 delta for each switch, with the ROI-plus-`I=0`
-trivial baseline drawn as the reference line. Slot: `docs/figures/fig4_ablation.png`.*
+![Macro-F1 delta of each ablation switch on the 4-scene subset](docs/figures/fig4_ablation.png)
 
-*Fig. 5 — Acceptance region of the released decision function in the `(I/T, h_ag)` plane,
-showing the `s > 0.75` requirement and the resulting `I < 1.36` ceiling. Slot:
-`docs/figures/fig5_acceptance.png`.*
+*Fig. 4 — One switch flipped away from the released configuration per run, macro F1 over the 4-scene
+subset (scenes 35, 11, 14, 16). The two reference lines are the released configuration (77.56) and
+the ROI + `I = 0` rule that remains once the surface veto is removed (74.94). Both modules that ship
+disabled cost F1 when enabled, and the grid-search optimiser buys +0.0012 pp while roughly tripling
+the frame time. Regenerate with `python3 tools/gen_ablation_fig.py <csv-dir>`.*
+
+![Acceptance region of the released decision function in the intensity-ratio / height plane, and the intensity ceiling it implies](docs/figures/fig5_acceptance.png)
+
+*Fig. 5 — The score gate in closed form. (a) In the `(I/T, h_ag)` plane the requirement `S > 0.75`
+cuts everything above `I/T = 0.2132`, and the three `θ` branches place the boundary where the
+annotation says: at `I = 1` a point needs 0.904 of the height term, which is 1.36 m of attainable
+height. (b) The ceiling that follows, against range, for the clamp floor, the median and the ceiling
+of `Tg` — the measured facts (69.7 % of frames sit on the floor, the largest detected value is
+`I = 1`) are marked on the curve rather than left in the prose.*
 
 <details>
 <summary><b>More results — per-scene detail, frame time, cross-sensor robustness, error budget</b></summary>
@@ -334,7 +349,7 @@ weak (see [`docs/DATASET.md`](docs/DATASET.md) §3).
 | 14 | 101 | 93.96 | 53.47 | 67.34 |
 | 16 | 102 | 95.82 | 44.13 | 59.74 |
 | 76 | 5 | 97.85 | 98.84 | 98.34 |
-| All 19 scenes, macro average | 1 828 | 96.5654 | 85.4256 | 90.0295 |
+| All 19 scenes, macro average over scenes | 1 828 | 96.5654 | 86.1053 | 90.0295 |
 
 Scenes 14 and 16 are **recall-limited** by the intensity ceiling of the released decision
 function, not by over-detection: precision stays at 94–96 % while recall halves.
