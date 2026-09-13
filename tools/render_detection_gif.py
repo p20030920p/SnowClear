@@ -40,15 +40,15 @@ from PIL import Image
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
 from pcd_common import load_indices, read_pcd   # noqa: E402
 
-BG = "#0d1117"
-PANEL = "#111823"
-GREY_LO = (0.34, 0.38, 0.44)
-GREY_HI = (0.83, 0.87, 0.92)
-TP = "#35d07f"
-FP = "#f85149"
-FN = "#5aa9ff"
-FG = "#e6edf3"
-MUTED = "#8b98a8"
+BG = "#ffffff"
+PANEL = "#ffffff"
+GREY_LO = (0.74, 0.77, 0.81)
+GREY_HI = (0.18, 0.21, 0.26)
+TP = "#1a7f37"
+FP = "#cf222e"
+FN = "#0969da"
+FG = "#1f2328"
+MUTED = "#6e7781"
 
 TXT = {
     "en": dict(panels=["raw scan", "detection", "de-snowed"],
@@ -144,13 +144,13 @@ def main() -> int:
             ax.set_xticks([])
             ax.set_yticks([])
             for side in ax.spines.values():
-                side.set_color("#232c38")
+                side.set_color("#d0d7de")
         fig.text(0.02, 0.945, t["panels"][0], color=FG, fontsize=10.5, va="top")
         fig.text(0.35, 0.945, t["panels"][1], color=FG, fontsize=10.5, va="top")
         fig.text(0.68, 0.945, t["panels"][2], color=FG, fontsize=10.5, va="top")
         fig.text(0.5, 0.995, t["metrics"].format(f=frame.stem, p=prec, r=rec, s=f1),
                  color=MUTED, fontsize=9.5, ha="center", va="top")
-        fig.text(0.5, 0.022, t["note"], color="#6b7686", fontsize=8.0, ha="center")
+        fig.text(0.5, 0.022, t["note"], color="#6e7781", fontsize=8.0, ha="center")
         buf = io.BytesIO()
         fig.savefig(buf, format="png", facecolor=BG)
         plt.close(fig)

@@ -150,30 +150,30 @@ def main() -> int:
         ax.set_axis_off()
         # inside the panel, not under it: a caption below the axes lands on the next
         # row's title as soon as the rows are packed tightly enough to be readable
-        plate = dict(boxstyle="round,pad=0.32", facecolor="#0b1017", edgecolor="#2b3846",
-                     linewidth=0.8, alpha=0.82)
+        plate = dict(boxstyle="round,pad=0.32", facecolor="#ffffff", edgecolor="#d0d7de",
+                     linewidth=0.8, alpha=0.92)
         ax.text(0.016, 0.965, label, transform=ax.transAxes, fontsize=11.0,
-                color="#eef3f9", va="top", ha="left", fontproperties=fps,
+                color="#1f2328", va="top", ha="left", fontproperties=fps,
                 fontweight="bold", zorder=12, bbox=plate)
         ax.text(0.016, 0.815, note, transform=ax.transAxes, fontsize=8.0, va="top",
-                ha="left", color="#a9b6c5", linespacing=1.55, fontproperties=fps,
+                ha="left", color="#4b5563", linespacing=1.55, fontproperties=fps,
                 zorder=12, bbox=plate)
 
     for ax in flat[len(panels):]:
         ax.set_axis_off()
 
     handles = [Line2D([], [], marker="o", ls="", markersize=6.0, color=c,
-                      markeredgecolor=BG, label=lab)
+                      markeredgecolor="#ffffff", label=lab)
                for c, lab in zip(("#aab4c0", TP_C, FN_C, FP_C), t["legend"])]
     fig.legend(handles=handles, loc="upper center", bbox_to_anchor=(0.5, 0.995), ncol=4,
                frameon=False, fontsize=9.0, prop=fps, handletextpad=0.4,
-               columnspacing=1.6, labelcolor="#dce4ee")
+               columnspacing=1.6, labelcolor="#1f2328")
     fig.text(0.5, 0.955, t["title"].format(f=a.frame), ha="center", va="top",
-             fontsize=12.0, color="#f0f4f9", fontweight="bold", fontproperties=fps)
+             fontsize=12.0, color="#1f2328", fontweight="bold", fontproperties=fps)
     fig.text(0.5, 0.915, t["sub"], ha="center", va="top", fontsize=8.2,
-             color="#8b98a8", fontproperties=fps)
+             color="#6e7781", fontproperties=fps)
     fig.text(0.5, 0.012, t["foot"], ha="center", va="bottom", fontsize=7.6,
-             color="#7d8794", fontproperties=fps)
+             color="#6e7781", fontproperties=fps)
 
     a.out.parent.mkdir(parents=True, exist_ok=True)
     fig.savefig(a.out, dpi=a.dpi, facecolor=BG)

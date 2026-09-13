@@ -13,7 +13,7 @@
 [![Regression](https://img.shields.io/badge/byte--exact%20regression-passing-success)](#可复现性)
 [![License](https://img.shields.io/badge/license-TODO-lightgrey)](LICENSE)
 
-[快速开始](#快速开始) &nbsp;•&nbsp; [方法](#方法) &nbsp;•&nbsp; [实验结果](#实验结果) &nbsp;•&nbsp; [文档](#文档)
+[快速开始](#快速开始) &nbsp;•&nbsp; [方法](#方法) &nbsp;•&nbsp; [实验结果](#实验结果) &nbsp;•&nbsp; [分析](#分析) &nbsp;•&nbsp; [文档](#文档)
 
 *[English](README.md) &nbsp;|&nbsp; 中文*
 
@@ -125,20 +125,47 @@ Release 构建、`OMP_NUM_THREADS=2`，单帧耗时不含 I/O 与评测；指标
 密度类滤波器的精确率之所以好看，是因为它们几乎什么都不返回 —— 召回不足 4 %。整张表可用
 `bash tools/eval_baselines.sh <输出目录>` 复现。
 
-![同一帧在五种检测器下的结果：真值、SnowClear、DROR、DSOR、SOR、ROR](docs/figures/fig12_baselines_zh.png)
+|  |  |
+|---|---|
+| ![同一帧在五种检测器下的结果：真值、SnowClear、DROR、DSOR、SOR、ROR](docs/figures/fig12_baselines_zh.png) | ![同一帧上 SnowClear 与 SOR 的鸟瞰对比](docs/figures/fig11_comparison_zh.png) |
+| *同一帧、五种检测器、同一相机：密度类滤波器完全没有碰到被标注的雪（蓝色），SOR 被误检淹没（红色），只有 SnowClear 面板与真值吻合。* | *同一帧与 SOR 的鸟瞰对比 —— 最经典的前后对照。* |
+| ![发布常量与无标注自标定的对比：参考安装高度与抬高 0.9 m](docs/figures/fig7_cross_sensor_zh.png) | ![召回去了哪里：逐场景真值预算](docs/figures/fig8_gt_ceiling_zh.png) |
+| *可移植性是实测而非声称：安装高度抬高 0.9 m 会让发布常量丢掉 **24.25 pp** F1（精确率几乎不动而召回腰斩），而无标注自标定只差 0.06 pp。* | *召回去了哪里：89.90 % 的真值仍可检出，7.38 % 落在 ROI 门控之外，2.12 % 高于强度上限。* |
 
-*同一帧、五种检测器、同一相机：密度类滤波器完全没有碰到被标注的雪（蓝色），SOR 被误检淹没
-（红色），只有 SnowClear 面板与真值吻合。*
+---
 
-![发布常量与无标注自标定的对比：参考安装高度与抬高 0.9 m](docs/figures/fig7_cross_sensor_zh.png)
+## 分析
 
-*可移植性是实测而非声称：安装高度抬高 0.9 m 会让发布常量丢掉 **24.25 pp** 宏平均 F1 —— 精确率几乎
-不动而召回率腰斩 —— 而无标注自标定只差 0.06 pp。*
+下列面板与上文表格背后的实测。每一张都能由仓库内的工具复现，图注给出协议。
 
-![召回去了哪里：逐场景真值预算](docs/figures/fig8_gt_ceiling_zh.png)
+|  |  |
+|---|---|
+| ![参考帧四联图：原始点云、真值标注、检测结果、去雪后](docs/figures/fig2_qualitative_zh.png) | ![场景 16 的召回受限帧：大部分漏检雪点在 ROI 之外](docs/figures/fig10_qualitative_hard_zh.png) |
+| *参考帧 `042126`（场景 35）：原始点云、真值标注、按 TP / FN / FP 拆分的检测结果（含单帧指标）与去雪后的点云。* | *召回受限的一帧（场景 16）：大部分漏检雪点在 ROI 圈**之外**，按构造就不可达。* |
+| ![去雪前后（三维透视）](docs/figures/fig0_zh_before.png) | ![同一区域去雪后](docs/figures/fig0_zh_after.png) |
+| *去雪前：整场加 5.2 m 局部放大，红色为将被剔除的点。* | *去雪后：同一区域已清理。该帧 208 504 点中剔除 6 957 点。* |
+| ![同一帧的三维透视图，按检测结果着色](docs/figures/fig0_hero_zh.png) | ![去雪前后合成的一张卡片](docs/figures/fig0_zh_banner.png) |
+| *帧 `042126` 的三维透视图 —— 灰色结构按强度着色，绿为 TP、红为 FP、蓝为 FN，引线指向漏检与误检最密集处。* | *同一组前后对照合成一张卡片，适合放进幻灯片或打印。* |
 
-*召回去了哪里：报告集上 89.90 % 的真值仍可检出，7.38 % 落在 ROI 门控之外，2.12 % 高于强度上限。
-实测召回 89.98 % 与该可达上限相差不到 0.1 pp —— 剩下的损失来自门控与强度上限，而不是判定规则。*
+![19 个镜像场景的逐场景精确率 / 召回率 / F1，阴影带为 16 场景报告集](docs/figures/fig1_per_scene_zh.png)
+
+*逐场景结果（发布配置）。阴影带为 16 场景报告集，虚线为其宏平均；场景 14、16 召回受限、单独报告，
+场景 76 只有 5 帧。*
+
+![4 场景子集上各消融开关的宏 F1 变化](docs/figures/fig4_ablation_zh.png)
+
+*消融：每次只把一个开关从发布配置上翻转。两个默认关闭的模块一开启就掉 F1；网格搜索优化器只换来
++0.0012 pp，却让单帧耗时约三倍。*
+
+![场景 35 的逐阶段单帧耗时，以及两个数学等价快速路径的实测影响](docs/figures/fig6_runtime_zh.png)
+
+*单帧时间分布。读盘与评估单列，因为发布耗时不计入它们；`α(r)` 查表值配对 +1.53 ms，且三个配置
+打印的 F1 完全相同。*
+
+|  |  |
+|---|---|
+| ![发布判定函数在强度比 / 高度平面上的接受域与强度上限](docs/figures/fig5_acceptance_zh.png) | ![阈值族 T(r, I)、α(r) 权重与逐帧基阈值](docs/figures/fig9_threshold_curve_zh.png) |
+| *判定门的闭式结果：`(I/T, h_ag)` 平面上的接受域，以及它给检测带来的强度上限。* | *阈值族 `T(r, I)`、塑造它的 `α(r)` 权重，以及逐帧基阈值 `Tg`。* |
 
 ---
 

@@ -40,15 +40,15 @@ sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
 from pcd_common import read_pcd, load_indices   # noqa: E402
 
 CJK = "/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc"
-BG = "#080b10"
+BG = "#ffffff"
 FLOOR = -1.0                      # the ROI floor: the grid lives here
-GRID_MINOR = "#1a2431"
-GRID_MAJOR = "#31465d"
-STRUCT_LO = (0.20, 0.24, 0.30)    # I = 0    weak returns, nearly ground shadow
-STRUCT_HI = (0.66, 0.70, 0.76)    # I >= 2   strong returns
-TP_C = "#35d07f"
-FN_C = "#5aa9ff"
-FP_C = "#ff6b61"
+GRID_MINOR = "#eef1f6"
+GRID_MAJOR = "#d5dde8"
+STRUCT_LO = (0.80, 0.83, 0.88)    # I = 0    weak returns, pale on white
+STRUCT_HI = (0.20, 0.24, 0.30)    # I >= 2   strong returns, dark on white
+TP_C = "#1a7f37"
+FN_C = "#0969da"
+FP_C = "#cf222e"
 
 TXT = {
     "en": dict(structure="Structure (ROI)", tp="Detected snow — TP",
@@ -226,30 +226,30 @@ def render(pts, cls, col, args) -> pathlib.Path:
         tx = float(np.clip(fx + side, 0.06, 0.88))
         ty = fy + 0.075 if up else fy - 0.075
         ax.annotate("", xy=(cx, cy), xytext=(tx, ty), textcoords="axes fraction",
-                    arrowprops=dict(arrowstyle="-", color="#5c6878", linewidth=1.0,
+                    arrowprops=dict(arrowstyle="-", color="#8c959f", linewidth=1.0,
                                     shrinkA=3, shrinkB=4, connectionstyle="arc3,rad=0.0"),
                     zorder=9)
         ax.text(tx, ty + (0.018 if up else -0.018), t[f"{key}_note"].format(n=n[key]),
                 transform=ax.transAxes, fontsize=9.6, ha="center",
-                va="bottom" if up else "top", color="#dce4ee", fontproperties=fps,
+                va="bottom" if up else "top", color="#1f2328", fontproperties=fps,
                 zorder=9,
-                bbox=dict(boxstyle="round,pad=0.30", facecolor="#0b1017",
-                          edgecolor="#2b3846", linewidth=0.8, alpha=0.9))
+                bbox=dict(boxstyle="round,pad=0.30", facecolor="#ffffff",
+                          edgecolor="#d0d7de", linewidth=0.8, alpha=0.95))
 
     # ---- legend + numbers ----------------------------------------------
-    order = (("structure", "#aab4c0"), ("tp", TP_C), ("fp", FP_C), ("fn", FN_C))
+    order = (("structure", "#6b7280"), ("tp", TP_C), ("fp", FP_C), ("fn", FN_C))
     handles = [Line2D([], [], marker="o", ls="", markersize=6.2, color=c,
                       markeredgecolor=BG, label=f"{t[k]}  ({n[k]:,})".replace(",", " "))
                for k, c in order]
     leg = ax.legend(handles=handles, loc="upper left", fontsize=9.2,
-                    framealpha=0.86, facecolor="#0e1319", edgecolor="#25303d",
+                    framealpha=0.95, facecolor="#ffffff", edgecolor="#d0d7de",
                     borderpad=0.6, labelspacing=0.45, handletextpad=0.5,
                     prop=fps, bbox_to_anchor=(0.018, 0.975))
     leg.set_zorder(10)
     ax.text(0.022, 0.055, t["metrics"].format(p=prec, r=rec), transform=ax.transAxes,
-            fontsize=10.0, color="#e6edf3", fontproperties=fps, zorder=10)
+            fontsize=10.0, color="#1f2328", fontproperties=fps, zorder=10)
     ax.text(0.978, 0.045, t["foot"].format(f=args.frame, n=pts.shape[0], roi=args.roi),
-            transform=ax.transAxes, fontsize=8.4, color="#7d8794", ha="right",
+            transform=ax.transAxes, fontsize=8.4, color="#6e7781", ha="right",
             fontproperties=fps, zorder=10)
 
     ax.set_xlim(view[0], view[1]); ax.set_ylim(view[2], view[3])

@@ -13,7 +13,7 @@
 [![Regression](https://img.shields.io/badge/byte--exact%20regression-passing-success)](#reproducibility)
 [![License](https://img.shields.io/badge/license-TODO-lightgrey)](LICENSE)
 
-[Quick start](#quick-start) &nbsp;•&nbsp; [Method](#method) &nbsp;•&nbsp; [Results](#results) &nbsp;•&nbsp; [Docs](#documentation)
+[Quick start](#quick-start) &nbsp;•&nbsp; [Method](#method) &nbsp;•&nbsp; [Results](#results) &nbsp;•&nbsp; [Analysis](#analysis) &nbsp;•&nbsp; [Docs](#documentation)
 
 *English &nbsp;|&nbsp; [中文](README_CN.md)*
 
@@ -130,23 +130,50 @@ ROI gate, index mapping and evaluation path, so the comparison isolates the deci
 The density filters are precise only because they return almost nothing — under 4 % recall. Reproduce
 the whole table with `bash tools/eval_baselines.sh <outdir>`.
 
-![The same frame under five detectors: ground truth, SnowClear, DROR, DSOR, SOR and ROR](docs/figures/fig12_baselines.png)
+|  |  |
+|---|---|
+| ![The same frame under five detectors: ground truth, SnowClear, DROR, DSOR, SOR and ROR](docs/figures/fig12_baselines.png) | ![The same frame, SnowClear against SOR in bird's-eye view](docs/figures/fig11_comparison.png) |
+| *One frame, five detectors, one camera: the density filters leave the annotated snow untouched (blue), SOR floods it with false positives (red), SnowClear matches the ground truth.* | *The same frame against SOR in bird's-eye view — the classic before/after comparison.* |
+| ![Released constants against the label-free self-calibration under a mount change](docs/figures/fig7_cross_sensor.png) | ![Ground-truth budget by scene: reachable, above the ceiling, vetoed, outside the ROI](docs/figures/fig8_gt_ceiling.png) |
+| *Portability, measured: a +0.9 m mount costs the released constants **24.25 pp** of F1 — recall halves while precision holds — and the label-free self-calibration 0.06 pp.* | *Where the recall goes: 89.90 % of ground truth stays reachable, 7.38 % falls outside the ROI gate and 2.12 % above the intensity ceiling.* |
 
-*One frame, five detectors, one camera: the density filters leave the annotated snow untouched
-(blue), SOR floods it with false positives (red), SnowClear is the panel that matches the ground
-truth.*
+---
 
-![Released constants against the label-free self-calibration, on the reference mount and with the sensor 0.9 m higher](docs/figures/fig7_cross_sensor.png)
+## Analysis
 
-*Portability, measured: mounting the sensor 0.9 m higher costs the released constants **24.25 pp** of
-macro F1 — recall halves while precision holds — and the label-free self-calibration 0.06 pp.*
+The qualitative panels and the measurements behind the tables. Every one is reproducible from the
+repository; captions state the protocol.
 
-![Where the recall goes: the ground-truth budget by scene](docs/figures/fig8_gt_ceiling.png)
+|  |  |
+|---|---|
+| ![Reference frame in four panels: raw scan, annotated snow, detection outcome, de-snowed cloud](docs/figures/fig2_qualitative.png) | ![A recall-limited frame from scene 16, most missed snow lies outside the ROI](docs/figures/fig10_qualitative_hard.png) |
+| *Reference frame `042126` (scene 35): raw scan, annotated snow, the detection split into TP / FN / FP with per-frame scores, and the de-snowed cloud.* | *A recall-limited frame (scene 16): most missed snow lies **outside** the ROI circle, so it is unreachable by construction.* |
+| ![Before and after at 3D perspective](docs/figures/fig0_before.png) | ![The same crop after removal](docs/figures/fig0_after.png) |
+| *Before: the full scene plus a 5.2 m zoom, with the points SnowClear removes in red.* | *After: the same crop cleaned. 6 957 of 208 504 points removed on this frame.* |
+| ![The same frame in 3D, coloured by detection outcome](docs/figures/fig0_hero.png) | ![The before/after pair as one print-ready card](docs/figures/fig0_banner.png) |
+| *Frame `042126` in 3D — grey structure shaded by intensity, green TP, red FP, blue FN, with leader lines at the miss and false-alarm clusters.* | *The same before/after pair as one card, for slides or print.* |
 
-*Where the recall goes: 89.90 % of ground truth stays reachable over the reported set, 7.38 % falls
-outside the ROI gate and 2.12 % above the intensity ceiling. The measured recall of 89.98 % sits
-within 0.1 pp of that reachable band, so the remaining loss is the gate and the ceiling, not the
-decision rule.*
+![Per-scene precision, recall and F1 across the 19 mirrored scenes, the 16-scene reported set shaded](docs/figures/fig1_per_scene.png)
+
+*Per-scene result, released configuration. The shaded band is the 16-scene reported set; the dashed
+lines are its macro average. Scenes 14 and 16 are recall-limited and reported separately, scene 76
+holds 5 frames.*
+
+![Single-switch ablation: macro-F1 delta per module on the 4-scene subset](docs/figures/fig4_ablation.png)
+
+*Ablation: one switch flipped away from the released configuration per run. Both modules that ship
+disabled cost F1 when enabled; the grid-search optimiser buys +0.0012 pp while roughly tripling the
+frame time.*
+
+![Frame time by stage on scene 35, plus the two equivalence-preserving fast paths](docs/figures/fig6_runtime.png)
+
+*Frame time by stage. I/O and evaluation are drawn separately because the published timing excludes
+them; the `α(r)` LUT is worth a paired +1.53 ms, and all configurations print the same F1.*
+
+|  |  |
+|---|---|
+| ![Acceptance region of the released decision function and the intensity ceiling it implies](docs/figures/fig5_acceptance.png) | ![The threshold family T(r, I), the alpha(r) weight, and the per-frame base threshold](docs/figures/fig9_threshold_curve.png) |
+| *The score gate in closed form: the acceptance region in the `(I/T, h_ag)` plane, and the intensity ceiling it puts on a detection.* | *The threshold family `T(r, I)`, the `α(r)` weight that shapes it, and the per-frame base threshold `Tg`.* |
 
 ---
 

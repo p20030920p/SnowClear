@@ -42,7 +42,7 @@ CJK = "/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc"
 RAW = LinearSegmentedColormap.from_list(
     "rawscan", ["#c3cad3", "#9aa2ac", "#5d656e", "#2a2f36"])
 # dark card for the README hero: a LiDAR scene reads like a real viewer screenshot
-DARKBG = "#0d1117"
+DARKBG = "#ffffff"      # the banner is drawn on white like every other figure
 # low intensities must still read as structure on the dark card: the scan rings are
 # weak returns, and a near-black ramp makes the "after" panel look empty
 DARK = LinearSegmentedColormap.from_list(
@@ -221,23 +221,23 @@ def render_banner(path: pathlib.Path, pts, kept, removed, crop, lang, dpi, vmax)
     for ax, kind in zip(axes, ("before", "after")):
         ax.set_facecolor(DARKBG)
         m = inside & (kept if kind == "after" else np.ones(x.size, dtype=bool))
-        ax.scatter(x[m], y[m], s=2.2, c=inten[m], cmap=DARK, vmin=0, vmax=vmax,
+        ax.scatter(x[m], y[m], s=2.2, c=inten[m], cmap=RAW, vmin=0, vmax=vmax,
                    linewidths=0, marker=".", rasterized=True)
         if kind == "before":
             rm = inside & removed
             ax.scatter(x[rm], y[rm], s=9.0, c=SNOW, linewidths=0.3,
                        edgecolors="#0d1117", marker=".", rasterized=True, zorder=5)
             ax.text(0.03, 0.05, t["banner_raw"], transform=ax.transAxes, fontsize=9.5,
-                    color="#ffb4b0", fontproperties=fps, zorder=8)
+                    color="#b3261e", fontproperties=fps, zorder=8)
         else:
             ax.text(0.03, 0.05, t["banner_after"], transform=ax.transAxes, fontsize=9.5,
-                    color="#9fe8c0", fontproperties=fps, zorder=8)
+                    color="#1a7f37", fontproperties=fps, zorder=8)
         ax.set_xlim(x0, x1); ax.set_ylim(y0, y1)
         ax.set_aspect("equal", adjustable="box")
         ax.set_xticks([]); ax.set_yticks([])
         for sp in ax.spines.values():
-            sp.set_color("#2b3138"); sp.set_linewidth(1.0)
-    fig.text(0.5, 0.5, "\u2192", fontsize=17, color="#0d1117", ha="center", va="center",
+            sp.set_color("#d0d7de"); sp.set_linewidth(1.0)
+    fig.text(0.5, 0.5, "\u2192", fontsize=17, color="#1f2328", ha="center", va="center",
              zorder=10, bbox=dict(boxstyle="circle,pad=0.22", facecolor="#eef3f8",
                                   edgecolor="none"))
     fig.subplots_adjust(left=0.008, right=0.992, top=0.985, bottom=0.015)
@@ -325,10 +325,10 @@ def render_banner3d(path, pts, kept, removed, crop, lang, dpi, azim, elev, fog):
                        linewidths=0.18, edgecolors=BG3D, marker=".", rasterized=True,
                        zorder=5)
             ax.text(0.03, 0.05, t["banner_raw"], transform=ax.transAxes, fontsize=9.5,
-                    color="#ffb4b0", fontproperties=fps, zorder=8)
+                    color="#b3261e", fontproperties=fps, zorder=8)
         else:
             ax.text(0.03, 0.05, t["banner_after"], transform=ax.transAxes, fontsize=9.5,
-                    color="#9fe8c0", fontproperties=fps, zorder=8)
+                    color="#1a7f37", fontproperties=fps, zorder=8)
         ax.set_xlim(view[0], view[1]); ax.set_ylim(view[2], view[3])
         ax.set_aspect("equal", adjustable="box")
         ax.set_box_aspect((view[3] - view[2]) / (view[1] - view[0]))
