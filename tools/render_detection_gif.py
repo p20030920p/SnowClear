@@ -1,14 +1,17 @@
 #!/usr/bin/env python3
 """Animate a scene as six panels: what the detector does, and what the answer is.
 
-    Raw scan | Desnow | Result        <- SnowClear
-    Raw scan | Desnow | Result        <- Ground truth
+    Raw scan | Removed | De-snowed        <- SnowClear
+    Raw scan | Removed | De-snowed        <- Ground truth
 
-Row one is the pipeline: the raw frame, the cloud after removal, and the detection split into
-green TP / red FP / blue FN. Row two is the reference: the same raw frame, the cloud with the
-annotated snow taken out, and the annotations themselves highlighted. Reading the two rows
-against each other is the point - the honest question about a de-snowing method is not "does the
-picture look clean" but "how far is the top row from the bottom row".
+Each column carries one half of the comparison, so no panel is a picture the reader has to
+interpret on their own:
+
+    Removed     what came out - ours coloured by whether the annotation agrees (green = it does,
+                red = it does not), the annotation itself plain green. Two green patterns directly
+                above each other is the comparison; where ours is short, we under-removed.
+    De-snowed   what stayed in. Ours marks what should have gone but did not in blue, so a clean
+                looking cloud cannot pass for a correct one.
 
 The labels are English in both READMEs on purpose: a figure that has to be regenerated per
 language is a figure that drifts.
@@ -52,10 +55,10 @@ FN = "#0968c8"
 FG = "#1f2328"
 MUTED = "#5b6572"
 
-COLUMNS = ["Raw scan", "Desnow", "Result"]
+COLUMNS = ["Raw scan", "Removed", "De-snowed"]
 ROWS = ["SnowClear", "Ground truth"]
-LEGEND = ("grey = returns kept  ·  green = snow flagged and annotated  ·  "
-          "red = flagged without annotation  ·  blue = annotated but missed")
+LEGEND = ("grey = returns kept  ·  green = removed and annotated  ·  "
+          "red = removed without an annotation  ·  blue = annotated but left in")
 
 
 def masks(pts, roi_radius, gt_idx, det_idx):
@@ -102,10 +105,10 @@ def main() -> int:
     ap.add_argument("--detection-dir", type=pathlib.Path, required=True)
     ap.add_argument("--out", type=pathlib.Path, default=pathlib.Path("docs/figures/detect.gif"))
     ap.add_argument("--step", type=int, default=5, help="keep every Nth frame")
-    ap.add_argument("--limit", type=int, default=22, help="maximum frames in the GIF")
+    ap.add_argument("--limit", type=int, default=21, help="maximum frames in the GIF")
     ap.add_argument("--roi", type=float, default=17.0)
     ap.add_argument("--ms", type=int, default=190, help="per-frame duration in the GIF")
-    ap.add_argument("--dpi", type=int, default=92)
+    ap.add_argument("--dpi", type=int, default=88)
     ap.add_argument("--width", type=float, default=10.8, help="figure width, inches")
     ap.add_argument("--height", type=float, default=4.9, help="figure height, inches")
     a = ap.parse_args()
@@ -140,20 +143,22 @@ def main() -> int:
 
         nothing = np.zeros(pts.shape[0], dtype=bool)
         panels = [
-            (nothing, []),                                    # SnowClear  raw
-            (snow, []),                                       # SnowClear  desnow
-            (nothing, [(roi & snow & gset, TP, 2.2),          # SnowClear  result
-                       (roi & snow & ~gset, FP, 3.4),
-                       (roi & gset & ~snow, FN, 5.5)]),
-            (nothing, []),                                    # truth      raw
-            (gset, []),                                       # truth      desnow
-            (nothing, [(roi & gset, TP, 2.2)]),               # truth      result
+            # SnowClear: the raw frame, what it removed (coloured by whether the annotation
+            # agrees), and what stayed in (with the annotation it failed to remove in blue)
+            (nothing, []),
+            (nothing, [(snow & gset, TP, 2.4), (snow & ~gset, FP, 3.4)]),
+            (snow, [(roi & gset & ~snow, FN, 4.6)]),
+            # Ground truth: the same frame, the annotation itself, and the ideal de-snowed cloud
+            (nothing, []),
+            (nothing, [(gset, TP, 2.4)]),
+            (gset, []),
         ]
 
-        fig, axes = plt.subplots(2, 3, figsize=(a.width, a.height), dpi=a.dpi, facecolor=BG)
-        fig.subplots_adjust(left=0.075, right=0.995, top=0.845, bottom=0.105,
-                            wspace=0.03, hspace=0.06)
-        for ax, (remove, colour_map) in zip(axes.ravel(), panels):
+        fig = plt.figure(figsize=(a.width, a.height), dpi=a.dpi, facecolor=BG)
+        gs = fig.add_gridspec(2, 3, left=0.075, right=0.995, top=0.855, bottom=0.115,
+                              wspace=0.03, hspace=0.07)
+        axes = [fig.add_subplot(gs[r, c]) for r in range(2) for c in range(3)]
+        for ax, (remove, colour_map) in zip(axes, panels):
             draw(ax, pts, base, remove, colour_map, a.roi)
         for col, name in enumerate(COLUMNS):
             fig.text(0.075 + (col + 0.5) * (0.92 / 3), 0.875, name, color=FG, fontsize=11.5,

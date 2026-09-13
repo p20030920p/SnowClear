@@ -78,12 +78,20 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Changed
 
-- **The animated hero now shows the answer beside the result.** Six panels per frame instead of
-  three: **SnowClear** and **ground truth** on separate rows, each running raw scan → de-snowed →
-  result, so the question a reader actually has ("how far is this from the annotation?") is
-  answerable without leaving the figure. Contrast was raised at the same time — the cloud is
-  mid-grey rather than pale, strong returns are near black, and the coloured classes are larger —
-  and the labels are English in both READMEs, because a figure regenerated per language drifts.
+- **The animated hero is built for comparison, not decoration.** Six panels per frame — **SnowClear**
+  and **ground truth** on separate rows — where each column answers one question: *Raw scan* is the
+  input, *Removed* is what came out with ours coloured by whether the annotation agrees, *De-snowed*
+  is what stayed in with our misses marked in blue. Because both rows share the columns, the
+  comparison is direct: short green means under-removal, red means over-removal, and a clean-looking
+  cloud cannot pass for a correct one. Contrast was raised at the same time (mid-grey cloud, near
+  black strong returns, larger class markers), and the labels are English in both READMEs, because a
+  figure regenerated per language drifts.
+- **Two analysis figures, and every figure now carries its conclusion.** Fig. 13 is one scene frame by
+  frame — F1 98.0 across 101 frames with the detector removing about as many points as are annotated —
+  and Fig. 14 is the weak-return test in the data: 99.6 % of annotated returns on scene 35 are exactly
+  `I = 0` while 98 % of everything else is brighter, and the ceiling that follows hides 0.19 % of the
+  annotations there against 27.20 % on scene 16. That last number is the honest form of a claim the
+  README previously made with a single pooled figure.
 
 - **Every figure is drawn on white.** The 3D hero, the five-detector comparison, the before/after
   card and the animated hero were dark-themed, which reads badly next to the light charts and worse
