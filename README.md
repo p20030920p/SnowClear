@@ -104,14 +104,30 @@ Four tests per point, in this order; each sees only what the previous one kept:
 
 ## Results
 
-Release build, `OMP_NUM_THREADS=2`; timing excludes I/O and evaluation. Macro over scenes, 16 scenes /
-1 620 frames of [WADS](https://digitalcommons.mtu.edu/wads/). Reproduction commands:
+Release build, `OMP_NUM_THREADS=2`; timing excludes I/O and evaluation. Reproduction commands:
 [`docs/figures/README.md`](docs/figures/README.md).
 
-![Precision, recall and F1 of SnowClear against the four non-learned baselines, macro over the reported set](docs/figures/fig3_comparison.png)
+![One frame, seven methods, one camera](docs/figures/fig12_baselines.png)
 
-*Baselines on the same frames and the same pipeline. The density filters return under 4 % of the
-annotations.*
+*Frame `042126`. CRFOR (Wang et al., RA-L 2023) is run as published, with its own preprocessing and
+parameters; the four filters share ours.*
+
+### Scene 35 — every method on the same 101 frames
+
+| Method | Precision | Recall | F1 | ms / frame |
+|---|---:|---:|---:|---:|
+| **SnowClear** | **96.79** | **97.07** | **96.90** | **≈ 9** |
+| CRFOR (Wang et al., RA-L 2023) | 95.95 | 96.92 | 96.41 | 17 132 |
+| DROR (Charron et al., CRV 2018) | 82.45 | 6.76 | 12.48 | 1041 |
+| DSOR (Kurup & Bos, 2021) | 81.58 | 6.93 | 12.73 | 70 |
+| SOR (Rusu et al., 2008) | 82.87 | 44.28 | 56.68 | 110 |
+| ROR (Rusu, 2009) | 77.13 | 1.86 | 3.63 | 1013 |
+
+CRFOR's numbers come from its own repository via `tools/eval_crfor.py`; the others from
+`bash tools/eval_baselines.sh` with `SCENES=35`. Latency column: the idle single-scene run, so it
+does not inherit the load the accuracy runs happened to see.
+
+### The 16-scene reported set — SnowClear against the four built-in filters
 
 | Method | Precision | Recall | F1 | ms / frame |
 |---|---:|---:|---:|---:|
@@ -121,97 +137,16 @@ annotations.*
 | ROR (Rusu, 2009) | 79.70 | 0.89 | 1.76 | 1013 |
 | **SnowClear (RITS)** | **96.69** | **89.97** | **92.82** | **≈ 10** |
 
-`bash tools/eval_baselines.sh <outdir>` reproduces the table.
+CRFOR is not in this table: at ~17 s per frame a 1 620-frame run is a
+multi-hour job, and its scene-35 result above is the honest sample we have.
 
-### Five detectors, one frame
+![Where the ground truth goes](docs/figures/fig15_budget.png)
 
-![Five detectors on one frame: ground truth, SnowClear, DROR, DSOR, SOR and ROR](docs/figures/fig12_baselines.png)
+*The green share is the recall ceiling. On the reported set it is 89.90 % and the measured recall is
+89.98 %; on scene 16 the ROI gate takes 40.5 % and the intensity ceiling 14.6 %.*
 
-*DROR / DSOR / ROR remove almost nothing (blue). SOR removes the road with it (red).*
-
-![SnowClear against SOR on the reference frame, bird's-eye view](docs/figures/fig11_comparison.png)
-
-*Same frame, SnowClear and SOR, bird's-eye view.*
-
-### Portability
-
-![Released constants against the label-free self-calibration, reference mount and +0.9 m](docs/figures/fig7_cross_sensor.png)
-
-*+0.9 m mounting height: the released constants lose 24.25 pp F1, the self-calibration 0.06 pp. Recall
-halves, precision holds.*
-
-### Where the recall goes
-
-![Ground-truth budget by scene: reachable, above the ceiling, vetoed, outside the ROI](docs/figures/fig8_gt_ceiling.png)
-
-*89.90 % of ground truth is reachable; measured recall 89.98 %.*
-
----
-
-## Analysis
-
-### Frame by frame
-
-![Per-frame precision, recall and F1 across one scene, with the annotated and removed point counts](docs/figures/fig13_per_frame.png)
-
-*F1 98.0 over 101 frames. Removed points track annotated points.*
-
-### The intensity ceiling
-
-![The weak-return test in the data, and the share of annotations above the ceiling, per scene](docs/figures/fig14_intensity.png)
-
-*99.6 % of annotated returns on scene 35 have `I = 0`, against 2 % of everything else. The share above
-the ceiling is 0.19 % on scene 35 and 27.20 % on scene 16.*
-
-### Residual error
-
-![Reference frame in four panels: raw scan, annotated snow, detection outcome, de-snowed cloud](docs/figures/fig2_qualitative.png)
-
-*Reference frame, four panels.*
-
-![A recall-limited frame from scene 16, with most missed snow outside the ROI](docs/figures/fig10_qualitative_hard.png)
-
-*Scene 16, recall 44 %. Most misses lie outside the ROI.*
-
-### Before and after
-
-![The raw scan with the points SnowClear removes in red, plus a 5.2 m zoom](docs/figures/fig0_before.png)
-
-![The same crop after removal](docs/figures/fig0_after.png)
-
-*6 957 of 208 504 points removed on this frame.*
-
-### 3D view
-
-![The reference frame in 3D, coloured by detection outcome](docs/figures/fig0_hero.png)
-
-*Snow sits above the ground surface.*
-
-![The before/after pair as one print-ready card](docs/figures/fig0_banner.png)
-
-*The pair as one card.*
-
-### Per scene, ablation, timing
-
-![Per-scene precision, recall and F1 across the 19 mirrored scenes, the 16-scene reported set shaded](docs/figures/fig1_per_scene.png)
-
-*Scenes 14 and 16 fall outside the reported band.*
-
-![Single-switch ablation: macro-F1 delta per module on the 4-scene subset](docs/figures/fig4_ablation.png)
-
-*Each module switched once. Both disabled modules cost F1 when enabled.*
-
-![Frame time by stage on scene 35, plus the two equivalence-preserving fast paths](docs/figures/fig6_runtime.png)
-
-*Stage times on scene 35. The `α(r)` LUT is worth +1.53 ms.*
-
-![Acceptance region of the released decision function and the intensity ceiling it implies](docs/figures/fig5_acceptance.png)
-
-*The gate in closed form. The ceiling falls in the gap between the two intensity spikes.*
-
-![The threshold family T(r, I), the alpha(r) weight, and the per-frame base threshold](docs/figures/fig9_threshold_curve.png)
-
-*`T(r, I)`, the `α(r)` weight, and `Tg` at its floor in 69.7 % of frames.*
+More figures — per-scene detail, ablation, frame time, the gate in closed form, frame-by-frame
+traces, the intensity distribution: [`docs/figures/README.md`](docs/figures/README.md).
 
 ---
 

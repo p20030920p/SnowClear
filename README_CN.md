@@ -101,14 +101,31 @@ ros2 launch snowclear_ros snowclear.launch.py rviz:=true
 
 ## 实验结果
 
-Release 构建、`OMP_NUM_THREADS=2`；耗时不含 I/O 与评测。指标为 [WADS](https://digitalcommons.mtu.edu/wads/)
-16 场景 / 1 620 帧的按场景宏平均。复现命令见 [`docs/figures/README.md`](docs/figures/README.md)。
+Release 构建、`OMP_NUM_THREADS=2`；耗时不含 I/O 与评测。复现命令见
+[`docs/figures/README.md`](docs/figures/README.md)。
 
-![SnowClear 与四个非学习基线的精确率 / 召回率 / F1（报告集宏平均）](docs/figures/fig3_comparison_zh.png)
+![同一帧、七种方法、同一相机](docs/figures/fig12_baselines_zh.png)
 
-*基线使用同一批帧、同一条流水线。密度类滤波器只返回不到 4 % 的标注点。*
+*帧 `042126`。CRFOR（Wang et al., RA-L 2023）按其发布设置与自带预处理运行；其余四个滤波器与
+SnowClear 共用我们的流水线。*
 
-| 方法 | 精确率 | 召回率 | F1 | ms / 帧 |
+### 场景 35 —— 所有方法跑同一批 101 帧
+
+| Method | Precision | Recall | F1 | ms / frame |
+|---|---:|---:|---:|---:|
+| **SnowClear** | **96.79** | **97.07** | **96.90** | **≈ 9** |
+| CRFOR（Wang et al., RA-L 2023） | 95.95 | 96.92 | 96.41 | 17 132 |
+| DROR（Charron et al., CRV 2018） | 82.45 | 6.76 | 12.48 | 1041 |
+| DSOR（Kurup & Bos, 2021） | 81.58 | 6.93 | 12.73 | 70 |
+| SOR（Rusu et al., 2008） | 82.87 | 44.28 | 56.68 | 110 |
+| ROR（Rusu, 2009） | 77.13 | 1.86 | 3.63 | 1013 |
+
+CRFOR 的数字由其官方仓库经 `tools/eval_crfor.py` 得到；其余来自 `SCENES=35 bash tools/eval_baselines.sh`。
+耗时列取空闲单场景运行，以免混入精度运行时的机器负载。
+
+### 16 场景报告集 —— SnowClear 与四个内置滤波器
+
+| Method | Precision | Recall | F1 | ms / frame |
 |---|---:|---:|---:|---:|
 | DROR（Charron et al., CRV 2018） | 85.54 | 3.57 | 6.80 | 1041 |
 | DSOR（Kurup & Bos, 2021） | 85.02 | 3.88 | 7.36 | 70 |
@@ -116,96 +133,16 @@ Release 构建、`OMP_NUM_THREADS=2`；耗时不含 I/O 与评测。指标为 [W
 | ROR（Rusu, 2009） | 79.70 | 0.89 | 1.76 | 1013 |
 | **SnowClear（RITS）** | **96.69** | **89.97** | **92.82** | **≈ 10** |
 
-`bash tools/eval_baselines.sh <输出目录>` 可复现该表。
+CRFOR 未列入本表：按每帧约 17 s 计算，跑满 1 620 帧需要数小时；上表场景 35 的结果
+是它目前诚实的样本。
 
-### 同一帧，五种检测器
+![真值去了哪里](docs/figures/fig15_budget_zh.png)
 
-![同一帧在五种检测器下的结果：真值、SnowClear、DROR、DSOR、SOR、ROR](docs/figures/fig12_baselines_zh.png)
+*绿色段即召回上限。报告集上为 89.90 %，实测召回 89.98 %；场景 16 上 ROI 门控占 40.5 %、强度上限占
+14.6 %。*
 
-*DROR / DSOR / ROR 几乎什么都没剔除（蓝色）。SOR 把路面一起削掉（红色）。*
-
-![同一帧上 SnowClear 与 SOR 的鸟瞰对比](docs/figures/fig11_comparison_zh.png)
-
-*同一帧，SnowClear 与 SOR，鸟瞰视角。*
-
-### 可移植性
-
-![发布常量与无标注自标定的对比：参考安装高度与抬高 0.9 m](docs/figures/fig7_cross_sensor_zh.png)
-
-*安装高度 +0.9 m：发布常量掉 24.25 pp F1，自标定掉 0.06 pp。召回腰斩，精确率不变。*
-
-### 召回去了哪里
-
-![召回去了哪里：逐场景真值预算](docs/figures/fig8_gt_ceiling_zh.png)
-
-*89.90 % 的真值可达；实测召回 89.98 %。*
-
----
-
-## 分析
-
-### 逐帧
-
-![单场景逐帧的精确率 / 召回率 / F1，以及逐帧被标注与被剔除的点数](docs/figures/fig13_per_frame_zh.png)
-
-*101 帧的 F1 为 98.0。剔除点数与标注点数基本一致。*
-
-### 强度上限
-
-![弱回波判据的实测，以及逐场景高于上限的标注占比](docs/figures/fig14_intensity_zh.png)
-
-*场景 35 上 99.6 % 的标注回波 `I = 0`，其余点只有 2 %。高于上限的占比：场景 35 为 0.19 %，
-场景 16 为 27.20 %。*
-
-### 残余误差
-
-![参考帧四联图：原始点云、真值标注、检测结果、去雪后](docs/figures/fig2_qualitative_zh.png)
-
-*参考帧，四联图。*
-
-![场景 16 的召回受限帧：大部分漏检雪点在 ROI 之外](docs/figures/fig10_qualitative_hard_zh.png)
-
-*场景 16，召回 44 %。漏检大多在 ROI 之外。*
-
-### 去雪前后
-
-![去雪前：整场加 5.2 m 局部放大，红色为将被剔除的点](docs/figures/fig0_zh_before.png)
-
-![同一区域去雪后](docs/figures/fig0_zh_after.png)
-
-*该帧 208 504 点中剔除 6 957 点。*
-
-### 三维视图
-
-![同一帧的三维透视图，按检测结果着色](docs/figures/fig0_hero_zh.png)
-
-*雪浮在路面之上。*
-
-![去雪前后合成的一张卡片](docs/figures/fig0_zh_banner.png)
-
-*合成一张卡片。*
-
-### 逐场景、消融、耗时
-
-![19 个镜像场景的逐场景精确率 / 召回率 / F1，阴影带为 16 场景报告集](docs/figures/fig1_per_scene_zh.png)
-
-*场景 14 与 16 落在报告带之外。*
-
-![4 场景子集上各消融开关的宏 F1 变化](docs/figures/fig4_ablation_zh.png)
-
-*每个模块单独翻转一次。两个默认关闭的模块一开启就掉 F1。*
-
-![场景 35 的逐阶段单帧耗时，以及两个数学等价快速路径的实测影响](docs/figures/fig6_runtime_zh.png)
-
-*场景 35 的逐阶段耗时。`α(r)` 查表值 +1.53 ms。*
-
-![发布判定函数在强度比 / 高度平面上的接受域与强度上限](docs/figures/fig5_acceptance_zh.png)
-
-*判定门的闭式结果。上限落在两个强度尖峰之间的空档里。*
-
-![阈值族 T(r, I)、α(r) 权重与逐帧基阈值](docs/figures/fig9_threshold_curve_zh.png)
-
-*`T(r, I)`、`α(r)` 权重，以及 69.7 % 的帧里被钳在下限的 `Tg`。*
+其余图（逐场景、消融、单帧耗时、判定门闭式、逐帧轨迹、强度分布）见
+[`docs/figures/README.md`](docs/figures/README.md)。
 
 ---
 

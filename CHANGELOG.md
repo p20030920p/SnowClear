@@ -76,7 +76,24 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   beyond the ROI) and `fig11_comparison[_zh].png` (SnowClear against SOR on one frame), all
   referenced live from both READMEs.
 
+### Added
+
+- **CRFOR in the comparison.** `tools/eval_crfor.py` runs the upstream implementation (Wang et al.,
+  RA-L 2023) on our frames with our ground truth and our metric, at its published parameters, and
+  writes indices in the same format as everything else. Over the same 101 frames of scene 35:
+  SnowClear F1 96.90, CRFOR 96.41, SOR 56.68, DSOR 12.73, DROR 12.48, ROR 3.63 - at 9 ms per frame
+  against CRFOR's 17 132 ms. Its preprocessing is its own, so the table says so.
+- **`tools/bev_panel.py`** - the bird's-eye panel rendering shared by the animated hero and the new
+  comparison board, so every panel on the page is drawn by one piece of code.
+
 ### Changed
+
+- **The comparison board replaced the six-panel 3D figure** (`tools/render_comparison_board.py`):
+  ground truth plus seven methods in the same bird's-eye grammar as the hero, each panel carrying
+  its own in-ROI P / R / F1, with a scoreboard cell so the picture and the numbers cannot drift.
+- **The results page is three figures instead of fourteen.** The board, one ground-truth budget
+  figure (`tools/gen_budget_fig.py`) and the hero carry the story; per-scene, ablation, frame-time,
+  closed-form and intensity figures stay published and indexed in `docs/figures/README.md`.
 
 - **The animated hero is built for comparison, not decoration.** Six panels per frame — **SnowClear**
   and **ground truth** on separate rows — where each column answers one question: *Raw scan* is the
