@@ -78,6 +78,15 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Changed
 
+- **The READMEs are front pages now.** `README.md` went from 603 to ~200 lines and `README_CN.md`
+  from 554 to ~200: usage first, a five-line method, one compact result table and four figures that
+  carry the evidence, with the long-form material moved verbatim to a local `LOCAL_NOTES.md`
+  (git-ignored, never pushed) and the reference documents left where they were.
+- **An animated hero**, `docs/figures/detect_scene35.gif` (+ `_zh`): 26 consecutive frames of scene
+  35 in one fixed view — raw scan, detections coloured by outcome, de-snowed cloud — rendered by
+  `tools/render_detection_gif.py` from the same per-frame indices the evaluation uses, so the
+  animation cannot disagree with the tables.
+
 - **The all-19 row no longer mixes weightings**: its recall was the frame-weighted mean while its
   precision and F1 were macro-over-scenes. Corrected to 86.1053 in `README.md`, `README_CN.md` and
   `DATASET.md`; the 16-scene reported-set row is unaffected.

@@ -44,3 +44,6 @@ __pycache__/
 *~
 .DS_Store
 .vscode/
+
+# long-form notes kept on this machine only
+LOCAL_NOTES.md
