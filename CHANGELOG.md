@@ -88,6 +88,13 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Changed
 
+- **The bar chart is its own figure.** The scoreboard cell was sharing a grid with seven point-cloud
+  panels; it is now Fig. 16 on its own (`tools/gen_score_fig.py`), and the board's eighth cell is a
+  key instead. Panel grids are for looking at, bar charts are for reading numbers off.
+- **Both READMEs rewritten in a plainer register**: declarative sentences, one fact each, no
+  adjectives about the work itself and no commentary on the documentation. The figure captions state
+  what was measured and on what; everything else moved into the tables or the docs.
+
 - **The comparison board replaced the six-panel 3D figure** (`tools/render_comparison_board.py`):
   ground truth plus seven methods in the same bird's-eye grammar as the hero, each panel carrying
   its own in-ROI P / R / F1, with a scoreboard cell so the picture and the numbers cannot drift.

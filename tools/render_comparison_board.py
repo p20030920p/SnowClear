@@ -116,36 +116,18 @@ def main() -> int:
 
     ax = fig.add_subplot(gs[1, cols - 1])
     ax.set_facecolor(PANEL)
-    x = np.arange(len(scores))
-    width = 0.26
-    for offset, key in ((-width, "precision"), (0.0, "recall"), (width, "f1")):
-        vals = [m[key] for _, m in scores]
-        ax.bar(x + offset, vals, width, color=BAR[key], zorder=3)
-        if key == "f1":
-            for xx, v in zip(x, vals):
-                ax.text(xx + offset, v + 2.0, f"{v:.1f}", ha="center", va="bottom",
-                        fontsize=7.0, color=FG, fontproperties=fps)
-    ax.set_xticks(x)
-    ax.set_xticklabels([n for n, _ in scores], fontsize=7.8, color=FG, rotation=28,
-                       ha="right", fontproperties=fps)
-    ax.set_ylim(0, 118)
-    ax.set_yticks([0, 50, 100])
-    ax.tick_params(length=0, labelsize=7.6, colors=MUTED)
-    ax.grid(axis="y", color="#eaeef2", linewidth=0.8, zorder=1)
-    ax.set_axisbelow(True)
-    for side in ("top", "right", "left"):
-        ax.spines[side].set_visible(False)
-    ax.spines["bottom"].set_color("#d0d7de")
-    ax.set_title(t["scoreboard"], fontsize=9.0, color=MUTED, loc="left", pad=5,
-                 fontproperties=fps)
+    for i, (colour, label) in enumerate(zip(("#8c959f", TP, FP, FN), t["legend"])):
+        y = 0.82 - 0.21 * i
+        ax.scatter([0.13], [y], s=110, c=colour, edgecolors="white", linewidths=0.8)
+        ax.text(0.27, y, label, fontsize=11.0, va="center", color=FG, fontproperties=fps)
+    ax.set_xlim(0, 1)
+    ax.set_ylim(0, 1)
+    ax.set_xticks([])
+    ax.set_yticks([])
+    for side in ax.spines.values():
+        side.set_color("#c9d3e0")
+        side.set_linewidth(0.8)
 
-    handles = [plt.Line2D([], [], marker="o", ls="", markersize=5.5, color=c,
-                          markeredgecolor="white")
-               for c in ("#8c959f", TP, FP, FN)]
-    # no title, subtitle or footer: the caption under the figure says all of that, and burned-in
-    # prose is the first thing that makes a figure read as cluttered
-    fig.legend(handles, t["legend"], loc="upper center", bbox_to_anchor=(0.5, 1.0), ncol=4,
-               frameon=False, fontsize=9.4, prop=fps, handletextpad=0.35, columnspacing=2.0)
 
     out.parent.mkdir(parents=True, exist_ok=True)
     fig.savefig(out, dpi=a.dpi, facecolor=BG)

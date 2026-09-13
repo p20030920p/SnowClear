@@ -4,7 +4,7 @@
 
 **Training-free snow removal for spinning LiDAR via RITS**
 
-<sub><b>R</b>ange–<b>I</b>ntensity <b>T</b>hresholding with zero-intensity <b>S</b>urface suppression &nbsp;·&nbsp; real-time &nbsp;·&nbsp; CPU-only &nbsp;·&nbsp; no learned weights</sub>
+<sub><b>R</b>ange–<b>I</b>ntensity <b>T</b>hresholding with zero-intensity <b>S</b>urface suppression</sub>
 
 [![ROS 2](https://img.shields.io/badge/ROS%202-Jazzy-22314E?logo=ros&logoColor=white)](https://docs.ros.org/en/jazzy/)
 [![C++17](https://img.shields.io/badge/C%2B%2B-17-00599C?logo=cplusplus&logoColor=white)](https://en.cppreference.com/w/cpp/17)
@@ -13,7 +13,7 @@
 [![Regression](https://img.shields.io/badge/byte--exact%20regression-passing-success)](#reproducibility)
 [![License](https://img.shields.io/badge/license-TODO-lightgrey)](LICENSE)
 
-[Quick start](#quick-start) &nbsp;•&nbsp; [Method](#method) &nbsp;•&nbsp; [Results](#results) &nbsp;•&nbsp; [Analysis](#analysis) &nbsp;•&nbsp; [Docs](#documentation)
+[Quick start](#quick-start) &nbsp;•&nbsp; [Method](#method) &nbsp;•&nbsp; [Results](#results) &nbsp;•&nbsp; [Docs](#documentation)
 
 *English &nbsp;|&nbsp; [中文](README_CN.md)*
 
@@ -21,23 +21,24 @@
 
 ![Six panels per frame: raw scan, what was removed, what was left — SnowClear above, ground truth below](docs/figures/detect_scene35.gif)
 
-*Scene 35, 21 frames. Top: SnowClear. Bottom: ground truth. Columns: raw scan, removed, de-snowed.
-Green: removed and annotated. Red: removed, not annotated. Blue: annotated, kept.*
+*Scene 35, 21 consecutive frames, one fixed view. Top row: SnowClear. Bottom row: ground truth.
+Columns: raw scan, removed, de-snowed. Green: removed and annotated. Red: removed, not annotated.
+Blue: annotated, kept.*
 
-**Point-wise snow removal for spinning LiDAR: ≈10 ms per frame on CPU, no training, no learned
-weights.** In: one raw frame. Out: the de-snowed cloud and the snow indices, in the input cloud's own
-index space. The core links PCL, OpenMP and TBB only, never ROS, so the offline and ROS 2 paths give
-identical output. Two byte-exact gates check that.
+SnowClear removes snowfall noise from spinning LiDAR scans point by point. It runs on CPU at about
+10 ms per frame, with no training and no learned weights.
+
+One raw frame in; the de-snowed cloud and the snow indices out, in the index space of the cloud you
+passed in. The core links PCL, OpenMP and TBB only, never ROS, so the offline and ROS 2 paths
+produce identical output. Two byte-exact gates check that.
 
 | | |
 |---|---|
 | **Accuracy** — 16 scenes, 1 620 frames | P 96.69 · R 89.98 · **F1 92.82** |
-| **Speed** — Release build, CPU only | **≈ 10 ms** per frame, no GPU |
-| **Against the best non-learned baseline** | **2.4×** its F1 (SOR 37.93), 9× faster |
-| **Learning** | none — no weights, no dataset to download |
+| **Speed** — Release build, CPU only | **≈ 10 ms** per frame |
+| **Against the best non-learned baseline** | **2.4×** its F1 (SOR 37.93) |
+| **Learning** | none |
 | **Output** | snow indices in the input cloud's own index space |
-
----
 
 ## Quick start
 
@@ -54,7 +55,7 @@ colcon build --cmake-args -DCMAKE_BUILD_TYPE=Release   # -O0 misrepresents runti
 source install/setup.bash
 ```
 
-Offline — no ROS graph involved:
+Offline, no ROS graph involved:
 
 ```bash
 # one frame
@@ -78,40 +79,39 @@ ros2 launch snowclear_ros snowclear.launch.py rviz:=true
 | `~/output/snow_points` | `sensor_msgs/PointCloud2` | what was removed |
 | `~/output/snow_indices` | `std_msgs/Int32MultiArray` | indices into the input cloud |
 
-All algorithm parameters are ROS 2 parameters whose defaults are the released values;
+All algorithm parameters are ROS 2 parameters whose defaults are the released values, so
 `ros2 param set /snowclear score_threshold 0.6` applies to the next scan. Replay a PCD without a
 sensor: `ros2 run snowclear_ros scan_to_cloud.py --pcd frame.pcd --rate 1.0`. Node reference:
 [`docs/ROS2.md`](docs/ROS2.md).
 
----
-
 ## Method
 
-Four tests per point, in this order; each sees only what the previous one kept:
+Four tests per point, in this order. Each sees only what the previous test kept.
 
 1. **ROI gate** — `z ∈ [−1.0, 2.6] m`, `r ≤ 17 m`, elevation `≥ −23°`.
-2. **Range–intensity score** — weak returns score high: `s = (1 − I/T)^1.2`, with `T(r, I)` pulled down
-   by a Gamma-shaped weight where beam density peaks.
+2. **Range–intensity score** — weak returns score high: `s = (1 − I/T)^1.2`. `T(r, I)` drops where
+   beam density peaks.
 3. **Surface veto** — a zero return within 0.6 m of a bright point beyond 7 m is rejected.
-4. **Decision** — `C = 0.7·s + 0.15·h_ag` above `θ`; the height term is capped at 0.15.
+4. **Decision** — `C = 0.7·s + 0.15·h_ag` above `θ`. The height term is capped at 0.15.
 
 ![Algorithm 1: the per-frame detection loop](docs/figures/algorithm1_en.png)
 
-*Algorithm 1 — the whole detector, 25 lines. Derivation, disabled features and the exact constants:
-[`docs/METHOD.md`](docs/METHOD.md).*
-
----
+*Algorithm 1. Constants and disabled features: [`docs/METHOD.md`](docs/METHOD.md).*
 
 ## Results
 
-Release build, `OMP_NUM_THREADS=2`; timing excludes I/O and evaluation. Reproduction commands:
-[`docs/figures/README.md`](docs/figures/README.md).
+Release build, `OMP_NUM_THREADS=2`; timing excludes I/O and evaluation. Macro over scenes.
+Reproduction commands: [`docs/figures/README.md`](docs/figures/README.md).
 
-![One frame, seven methods, one camera](docs/figures/fig12_baselines.png)
+![Seven methods on one frame, bird's-eye view](docs/figures/fig12_baselines.png)
 
-*Frame `042126`, same ground truth for every panel; the scoreboard repeats each method's in-ROI
-P / R / F1. CRFOR (Wang et al., RA-L 2023) is run as published, with its own preprocessing and
-parameters; the four filters share ours.*
+*Frame `042126`, one window and one ground truth for every panel. CRFOR (Wang et al., RA-L 2023)
+runs as published, with its own preprocessing and parameters. The four filters and SnowClear share
+ours.*
+
+![Precision, recall and F1 per method on scene 35](docs/figures/fig16_scores.png)
+
+*Scene 35, 101 frames, in-ROI. Latency from the idle single-scene run.*
 
 ### Scene 35 — every method on the same 101 frames
 
@@ -125,8 +125,7 @@ parameters; the four filters share ours.*
 | ROR (Rusu, 2009) | 77.13 | 1.86 | 3.63 | 1013 |
 
 CRFOR's numbers come from its own repository via `tools/eval_crfor.py`; the others from
-`bash tools/eval_baselines.sh` with `SCENES=35`. Latency column: the idle single-scene run, so it
-does not inherit the load the accuracy runs happened to see.
+`SCENES=35 bash tools/eval_baselines.sh`.
 
 ### The 16-scene reported set — SnowClear against the four built-in filters
 
@@ -138,19 +137,15 @@ does not inherit the load the accuracy runs happened to see.
 | ROR (Rusu, 2009) | 79.70 | 0.89 | 1.76 | 1013 |
 | **SnowClear (RITS)** | **96.69** | **89.97** | **92.82** | **≈ 10** |
 
-CRFOR is not in this table: at ~17 s per frame a 1 620-frame run is a
-multi-hour job, and its scene-35 result above is the honest sample we have.
+A 1 620-frame CRFOR run takes hours at ~17 s per frame, so it is not in this table.
 
 ![Where the ground truth goes](docs/figures/fig15_budget.png)
 
-*Ground-truth budget, released configuration: each annotated point charged to the first stage that
-rejects it. The green share is the recall ceiling — 89.90 % on the reported set against a measured
-recall of 89.98 % — and on scene 16 the ROI gate takes 40.5 % with the intensity ceiling at 14.6 %.*
+*Ground-truth budget for the released configuration: each annotated point is charged to the first
+stage that rejects it. Green is the recall ceiling, 89.90 % over the reported set against a measured
+recall of 89.98 %. On scene 16 the ROI gate takes 40.5 % and the intensity ceiling 14.6 %.*
 
-More figures — per-scene detail, ablation, frame time, the gate in closed form, frame-by-frame
-traces, the intensity distribution: [`docs/figures/README.md`](docs/figures/README.md).
-
----
+More figures: [`docs/figures/README.md`](docs/figures/README.md).
 
 ## Reproducibility
 
@@ -158,21 +153,18 @@ traces, the intensity distribution: [`docs/figures/README.md`](docs/figures/READ
 SNOWCLEAR_DATA=/path/to/wads-mirror bash tools/verify.sh   # clean build + all gates
 ```
 
-Three gates: unit tests (`colcon test`), the offline byte-exact gate (`--mode all_checks`,
-reproduces the released reference output byte for byte) and the live byte-exact gate
-(`src/snowclear_ros/test/live_check.py`). A change that can alter detection turns the second one red.
-Data layout: [`docs/DATASET.md`](docs/DATASET.md).
-
----
+Three gates: unit tests (`colcon test`), the offline byte-exact gate (`--mode all_checks`) and the
+live byte-exact gate (`src/snowclear_ros/test/live_check.py`). A change that can alter detection
+turns the second one red. Data layout: [`docs/DATASET.md`](docs/DATASET.md).
 
 ## Documentation
 
-Method and shipped constants [`docs/METHOD.md`](docs/METHOD.md) &nbsp;·&nbsp; node reference
-[`docs/ROS2.md`](docs/ROS2.md) &nbsp;·&nbsp; package split
-[`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) &nbsp;·&nbsp; measurements, ablations and the
-prioritised roadmap [`docs/OPTIMIZATION.md`](docs/OPTIMIZATION.md) &nbsp;·&nbsp; figure index
-[`docs/figures/README.md`](docs/figures/README.md) &nbsp;·&nbsp; ROS 1 differences
-[`docs/MIGRATION_ROS1.md`](docs/MIGRATION_ROS1.md).
+- Method and shipped constants: [`docs/METHOD.md`](docs/METHOD.md)
+- Node reference: [`docs/ROS2.md`](docs/ROS2.md)
+- Package layout: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)
+- Measurements, ablations and roadmap: [`docs/OPTIMIZATION.md`](docs/OPTIMIZATION.md)
+- Figure index and regeneration commands: [`docs/figures/README.md`](docs/figures/README.md)
+- Differences from the ROS 1 build: [`docs/MIGRATION_ROS1.md`](docs/MIGRATION_ROS1.md)
 
 ## Citation
 
@@ -189,12 +181,11 @@ prioritised roadmap [`docs/OPTIMIZATION.md`](docs/OPTIMIZATION.md) &nbsp;·&nbsp
 
 ## License
 
-Not yet chosen — see [`LICENSE`](LICENSE). Third-party material keeps its upstream terms: the
-non-learned baselines in `dynamic_outlier_filters.cpp` follow
-[DROR](https://github.com/nickcharron/lidar_snow_removal) (Charron et al., CRV 2018) and
-[DSOR](https://github.com/assasinXL/dsor_filter) (Kurup & Bos, 2021).
+Not chosen yet; see [`LICENSE`](LICENSE). The non-learned baselines in
+`dynamic_outlier_filters.cpp` follow [DROR](https://github.com/nickcharron/lidar_snow_removal)
+(Charron et al., CRV 2018) and [DSOR](https://github.com/assasinXL/dsor_filter) (Kurup & Bos, 2021).
 
 ## Contact
 
-Questions, bugs and reproduction failures: please open an issue — include the output of
-`--mode all_checks` and your `OMP_NUM_THREADS`.
+Open an issue for bugs or reproduction failures. Include the output of `--mode all_checks` and your
+`OMP_NUM_THREADS`.
