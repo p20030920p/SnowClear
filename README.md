@@ -109,7 +109,8 @@ Release build, `OMP_NUM_THREADS=2`; timing excludes I/O and evaluation. Reproduc
 
 ![One frame, seven methods, one camera](docs/figures/fig12_baselines.png)
 
-*Frame `042126`. CRFOR (Wang et al., RA-L 2023) is run as published, with its own preprocessing and
+*Frame `042126`, same ground truth for every panel; the scoreboard repeats each method's in-ROI
+P / R / F1. CRFOR (Wang et al., RA-L 2023) is run as published, with its own preprocessing and
 parameters; the four filters share ours.*
 
 ### Scene 35 — every method on the same 101 frames
@@ -142,8 +143,9 @@ multi-hour job, and its scene-35 result above is the honest sample we have.
 
 ![Where the ground truth goes](docs/figures/fig15_budget.png)
 
-*The green share is the recall ceiling. On the reported set it is 89.90 % and the measured recall is
-89.98 %; on scene 16 the ROI gate takes 40.5 % and the intensity ceiling 14.6 %.*
+*Ground-truth budget, released configuration: each annotated point charged to the first stage that
+rejects it. The green share is the recall ceiling — 89.90 % on the reported set against a measured
+recall of 89.98 % — and on scene 16 the ROI gate takes 40.5 % with the intensity ceiling at 14.6 %.*
 
 More figures — per-scene detail, ablation, frame time, the gate in closed form, frame-by-frame
 traces, the intensity distribution: [`docs/figures/README.md`](docs/figures/README.md).

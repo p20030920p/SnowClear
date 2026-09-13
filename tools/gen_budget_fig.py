@@ -35,22 +35,10 @@ SEG = [("reachable", "#1a7f37"), ("roi", "#8c959f"),
        ("ceiling", "#cf222e"), ("veto", "#c9820a")]
 
 TXT = {
-    "en": dict(title="Where the ground truth goes",
-               sub="each annotated point charged to the first stage that rejects it · the released "
-                   "configuration, no parameters changed",
-               xlabel="% of annotated points",
-               legend=["reached by the decision", "outside the ROI gate",
-                       "above the intensity ceiling", "vetoed as surface-attached"],
-               foot="the green share is the recall ceiling: the measured recall sits within 0.1 pp "
-                    "of it on the reported set and on the 4-scene audit\n"
-                    "regenerate: tools/audit_error_budget.py --mode budget --csv <file>, then this "
-                    "script on the two CSVs"),
-    "zh": dict(title="真值去了哪里",
-               sub="每个标注点计入第一个拒绝它的阶段 · 发布配置，未改动任何参数",
-               xlabel="占标注点的百分比",
-               legend=["通过判定被检出", "落在 ROI 门控之外", "高于强度上限", "被判为贴附表面而否决"],
-               foot="绿色段即召回上限：在报告集与 4 场景审计上，实测召回与它的差距都在 0.1 pp 以内\n"
-                    "复现：tools/audit_error_budget.py --mode budget --csv <文件>，再用本脚本读这两个 CSV"),
+    "en": dict(xlabel="% of annotated points",
+               legend=["reached", "outside ROI", "above ceiling", "vetoed"]),
+    "zh": dict(xlabel="占标注点的百分比",
+               legend=["被检出", "ROI 之外", "高于上限", "被否决"]),
 }
 
 
@@ -111,15 +99,9 @@ def main() -> int:
     for side in ("top", "right", "left"):
         ax.spines[side].set_visible(False)
     ax.spines["bottom"].set_color(RULE)
-    ax.legend(loc="lower left", bbox_to_anchor=(0.0, 1.005), frameon=False, fontsize=8.6,
-              ncol=2, prop=fps, handlelength=1.1, handleheight=0.95, columnspacing=1.4)
-    fig.text(0.5, 0.975, t["title"], ha="center", va="top", fontsize=11.6, color=FG,
-             fontweight="bold", fontproperties=fps)
-    fig.text(0.5, 0.930, t["sub"], ha="center", va="top", fontsize=8.2, color=MUTED,
-             fontproperties=fps)
-    fig.text(0.008, 0.014, t["foot"], ha="left", va="bottom", fontsize=7.2, color=MUTED,
-             fontproperties=fps, linespacing=1.5)
-    fig.subplots_adjust(left=0.145, right=0.985, top=0.775, bottom=0.155)
+    ax.legend(loc="upper center", bbox_to_anchor=(0.5, 1.0), frameon=False, fontsize=9.2,
+              ncol=4, prop=fps, handlelength=1.1, handleheight=0.95, columnspacing=1.6)
+    fig.subplots_adjust(left=0.145, right=0.985, top=0.955, bottom=0.150)
 
     out.parent.mkdir(parents=True, exist_ok=True)
     fig.savefig(out, dpi=200, facecolor="white")

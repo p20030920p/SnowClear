@@ -42,25 +42,12 @@ CJK = "/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc"
 BAR = {"precision": "#2f6f9f", "recall": "#2da44e", "f1": "#8250df"}
 
 TXT = {
-    "en": dict(title="One frame, seven methods, one camera — frame {frame}",
-               sub="identical frame and ground truth · in-ROI precision / recall / F1 in each "
-                   "panel · CRFOR runs its own published preprocessing, the others share ours",
-               gt="Ground truth", annotated="{n} annotated points",
-               detected="{n} detections", scoreboard="in-ROI score, this frame",
-               legend=["annotated snow", "detected & annotated — TP", "detected, not annotated — FP",
-                       "annotated, missed — FN"],
-               foot="CRFOR (Wang et al., RA-L 2023) is a separate implementation: it is run as "
-                    "published, with its own parameters and gates, not compiled into the core\n"
-                    "regenerate: tools/eval_crfor.py for its indices, then this script with one "
-                    "--series per method"),
-    "zh": dict(title="同一帧、七种方法、同一相机 —— 帧 {frame}",
-               sub="同一帧与同一真值 · 各面板内为 ROI 内的精确率 / 召回率 / F1 · CRFOR 使用其发布的"
-                   "预处理，其余方法共用我们的",
-               gt="真值标注", annotated="标注点 {n} 个",
-               detected="检出 {n} 点", scoreboard="本帧 ROI 内得分",
-               legend=["被标注的雪", "检出且被标注 —— TP", "检出但无标注 —— FP", "被标注却漏检 —— FN"],
-               foot="CRFOR（Wang et al., RA-L 2023）是独立实现：按其发布设置与门控运行，未编入核心\n"
-                    "复现：先用 tools/eval_crfor.py 生成其索引，再用本脚本为每个方法传一个 --series"),
+    "en": dict(gt="Ground truth", annotated="annotated",
+               scoreboard="P / R / F1",
+               legend=["annotated", "TP", "FP", "FN"]),
+    "zh": dict(gt="真值标注", annotated="标注",
+               scoreboard="P / R / F1",
+               legend=["被标注", "TP", "FP", "FN"]),
 }
 
 
@@ -73,8 +60,7 @@ def main() -> int:
                     help="Label=indices.txt, repeatable; drawn after the ground-truth panel")
     ap.add_argument("--frame", default="")
     ap.add_argument("--roi", type=float, default=17.0)
-    ap.add_argument("--out", type=pathlib.Path,
-                    default=pathlib.Path("docs/figures/fig12_baselines.png"))
+    ap.add_argument("--out", type=pathlib.Path, default=None)
     ap.add_argument("--lang", default="en", choices=["en", "zh"])
     ap.add_argument("--dpi", type=int, default=170)
     ap.add_argument("--width", type=float, default=11.4)
@@ -84,6 +70,8 @@ def main() -> int:
     fps = (matplotlib.font_manager.FontProperties(fname=CJK) if a.lang == "zh" else None)
     if a.lang == "zh":
         plt.rcParams["font.sans-serif"] = ["Noto Sans CJK JP", "DejaVu Sans"]
+    out = a.out or pathlib.Path("docs/figures") / (
+        "fig12_baselines_zh.png" if a.lang == "zh" else "fig12_baselines.png")
 
     pts = read_pcd(a.pcd)
     if not np.isfinite(pts).all(axis=1).all():
@@ -108,27 +96,23 @@ def main() -> int:
         raise SystemExit(f"{len(panels)} panels do not fit {cols}x{rows} with a scoreboard")
 
     fig = plt.figure(figsize=(a.width, a.height), dpi=a.dpi, facecolor=BG)
-    gs = fig.add_gridspec(rows, cols, left=0.008, right=0.992, top=0.835, bottom=0.090,
-                          wspace=0.035, hspace=0.22)
+    gs = fig.add_gridspec(rows, cols, left=0.008, right=0.992, top=0.925, bottom=0.080,
+                          wspace=0.035, hspace=0.17)
     scores = []
     for k, (label, title, snow) in enumerate(panels):
         ax = fig.add_subplot(gs[k // cols, k % cols])
         if snow is None:
             draw_panel(ax, pts, base, np.zeros(pts.shape[0], dtype=bool),
                        [(roi & gset, TP, 1.8)], a.roi, WINDOW_DISC)
-            note = t["annotated"].format(n=f"{int(gset.sum()):,}".replace(",", " "))
         else:
             m = stats(pts, gset, snow, a.roi)
             scores.append((title, m))
             draw_panel(ax, pts, base, np.zeros(pts.shape[0], dtype=bool),
                        [(roi & snow & gset, TP, 1.8), (roi & snow & ~gset, FP, 2.6),
                         (roi & gset & ~snow, FN, 3.4)], a.roi, WINDOW_DISC)
-            note = f"P {m['precision']:.1f} · R {m['recall']:.1f} · F1 {m['f1']:.1f}"
         pos = ax.get_position()
-        fig.text(pos.x0, pos.y1 + 0.028, title, color=FG, fontsize=10.6, fontweight="bold",
+        fig.text(pos.x0, pos.y1 + 0.010, title, color=FG, fontsize=10.4, fontweight="bold",
                  ha="left", va="bottom", fontproperties=fps)
-        fig.text(pos.x0, pos.y1 + 0.006, note, color=MUTED, fontsize=8.4, ha="left",
-                 va="bottom", fontproperties=fps)
 
     ax = fig.add_subplot(gs[1, cols - 1])
     ax.set_facecolor(PANEL)
@@ -152,25 +136,21 @@ def main() -> int:
     for side in ("top", "right", "left"):
         ax.spines[side].set_visible(False)
     ax.spines["bottom"].set_color("#d0d7de")
-    ax.set_title(t["scoreboard"], fontsize=9.6, color=FG, loc="left", pad=6,
+    ax.set_title(t["scoreboard"], fontsize=9.0, color=MUTED, loc="left", pad=5,
                  fontproperties=fps)
 
     handles = [plt.Line2D([], [], marker="o", ls="", markersize=5.5, color=c,
                           markeredgecolor="white")
                for c in ("#8c959f", TP, FP, FN)]
-    fig.legend(handles, t["legend"], loc="upper center", bbox_to_anchor=(0.5, 0.995), ncol=4,
-               frameon=False, fontsize=9.0, prop=fps, handletextpad=0.4, columnspacing=1.6)
-    fig.text(0.5, 0.950, t["title"].format(frame=a.frame), ha="center", va="top", fontsize=12.0,
-             color=FG, fontweight="bold", fontproperties=fps)
-    fig.text(0.5, 0.914, t["sub"], ha="center", va="top", fontsize=8.2, color=MUTED,
-             fontproperties=fps)
-    fig.text(0.008, 0.012, t["foot"], ha="left", va="bottom", fontsize=7.2, color=MUTED,
-             fontproperties=fps, linespacing=1.5)
+    # no title, subtitle or footer: the caption under the figure says all of that, and burned-in
+    # prose is the first thing that makes a figure read as cluttered
+    fig.legend(handles, t["legend"], loc="upper center", bbox_to_anchor=(0.5, 1.0), ncol=4,
+               frameon=False, fontsize=9.4, prop=fps, handletextpad=0.35, columnspacing=2.0)
 
-    a.out.parent.mkdir(parents=True, exist_ok=True)
-    fig.savefig(a.out, dpi=a.dpi, facecolor=BG)
+    out.parent.mkdir(parents=True, exist_ok=True)
+    fig.savefig(out, dpi=a.dpi, facecolor=BG)
     plt.close(fig)
-    print(f"{a.out}")
+    print(f"{out}")
     for name, m in scores:
         print(f"  {name:12s} P {m['precision']:5.2f}  R {m['recall']:5.2f}  F1 {m['f1']:5.2f}  "
               f"(TP {m['tp']}, FP {m['fp']}, FN {m['fn']})")
