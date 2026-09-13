@@ -78,6 +78,13 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Changed
 
+- **The animated hero now shows the answer beside the result.** Six panels per frame instead of
+  three: **SnowClear** and **ground truth** on separate rows, each running raw scan → de-snowed →
+  result, so the question a reader actually has ("how far is this from the annotation?") is
+  answerable without leaving the figure. Contrast was raised at the same time — the cloud is
+  mid-grey rather than pale, strong returns are near black, and the coloured classes are larger —
+  and the labels are English in both READMEs, because a figure regenerated per language drifts.
+
 - **Every figure is drawn on white.** The 3D hero, the five-detector comparison, the before/after
   card and the animated hero were dark-themed, which reads badly next to the light charts and worse
   once GitHub scales them down. They now use the same light palette as everything else - structure

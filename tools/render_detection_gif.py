@@ -1,26 +1,27 @@
 #!/usr/bin/env python3
-"""Animate a scene: raw scan -> per-frame detection -> de-snowed cloud.
+"""Animate a scene as six panels: what the detector does, and what the answer is.
 
-One GIF, three panels, a fixed bird's-eye view and one colour grammar, so what the reader sees is
-what the detector does over time rather than one flattering frame:
+    Raw scan | Desnow | Result        <- SnowClear
+    Raw scan | Desnow | Result        <- Ground truth
 
-    raw scan      every return, shaded by intensity
-    detection     grey = kept, green = flagged and annotated, red = flagged but not annotated
-                  (false positive), blue = annotated but not flagged (missed)
-    de-snowed     what leaves the pipeline
+Row one is the pipeline: the raw frame, the cloud after removal, and the detection split into
+green TP / red FP / blue FN. Row two is the reference: the same raw frame, the cloud with the
+annotated snow taken out, and the annotations themselves highlighted. Reading the two rows
+against each other is the point - the honest question about a de-snowing method is not "does the
+picture look clean" but "how far is the top row from the bottom row".
 
-The per-frame numbers printed in the panel are recomputed from the same index files the
-evaluation uses, so the animation cannot disagree with the tables.
+The labels are English in both READMEs on purpose: a figure that has to be regenerated per
+language is a figure that drifts.
 
     ros2 run snowclear_core snowclear_runner --mode eval_folders \\
         --params src/snowclear_ros/config/snowclear_params.yaml \\
         pcd_root:=<root> result_root:=<mirror>/result save_results:=true output_dir:=<dump>
     python3 tools/render_detection_gif.py --pcd-dir <mirror>/pcd_output/35/velodyne \\
         --gt-dir <mirror>/result/35 --detection-dir <dump>/velodyne \\
-        --out docs/figures/detect_scene35.gif --step 3
+        --out docs/figures/detect_scene35.gif --step 5 --limit 22
 
-Keep the GIF small: `--step` thins the frames and `--dpi` sets the panel resolution. GitHub plays
-animated GIFs; a static fallback matters, so both READMEs also carry the still figures.
+`--step` thins the frames and `--dpi` sets the panel resolution; both exist to keep the GIF
+inside a few megabytes, which is what GitHub will play smoothly.
 """
 
 from __future__ import annotations
@@ -41,25 +42,20 @@ sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
 from pcd_common import load_indices, read_pcd   # noqa: E402
 
 BG = "#ffffff"
-PANEL = "#ffffff"
-GREY_LO = (0.74, 0.77, 0.81)
-GREY_HI = (0.18, 0.21, 0.26)
+PANEL = "#f7f9fc"
+EDGE = "#c9d3e0"
+GREY_LO = (0.55, 0.59, 0.65)     # weak returns: mid grey, still readable on white
+GREY_HI = (0.11, 0.14, 0.19)     # strong returns: near black
 TP = "#1a7f37"
 FP = "#cf222e"
-FN = "#0969da"
+FN = "#0968c8"
 FG = "#1f2328"
-MUTED = "#6e7781"
+MUTED = "#5b6572"
 
-TXT = {
-    "en": dict(panels=["raw scan", "detection", "de-snowed"],
-               metrics="frame {f}   P {p:.1f} · R {r:.1f} · F1 {s:.1f}",
-               legend=["kept", "TP", "FP", "FN"],
-               note="in-ROI, per frame · grey shading = intensity"),
-    "zh": dict(panels=["原始点云", "检出结果", "去雪后"],
-               metrics="帧 {f}   P {p:.1f} · R {r:.1f} · F1 {s:.1f}",
-               legend=["保留", "TP", "FP", "FN"],
-               note="ROI 内、逐帧统计 · 灰度表示强度"),
-}
+COLUMNS = ["Raw scan", "Desnow", "Result"]
+ROWS = ["SnowClear", "Ground truth"]
+LEGEND = ("grey = returns kept  ·  green = snow flagged and annotated  ·  "
+          "red = flagged without annotation  ·  blue = annotated but missed")
 
 
 def masks(pts, roi_radius, gt_idx, det_idx):
@@ -74,20 +70,28 @@ def masks(pts, roi_radius, gt_idx, det_idx):
     return roi, snow, gset
 
 
-def draw(ax, pts, roi, snow, gset, panel, shadow):
-    """One BEV panel. `shadow` adds the detection colouring on top of the kept points."""
-    inten = np.clip(pts[:, 3] / max(float(np.percentile(pts[:, 3], 99)), 1.0), 0, 1)
-    base = np.array(GREY_LO)[None, :] * (1 - inten)[:, None] + \
-        np.array(GREY_HI)[None, :] * inten[:, None]
-    keep = ~snow if shadow else np.ones(pts.shape[0], dtype=bool)
-    ax.scatter(pts[keep, 0], pts[keep, 1], s=0.5, c=base[keep], linewidths=0,
+def draw(ax, pts, base, remove, colour_map, roi_radius):
+    """One panel: the kept returns as a grey cloud, then the coloured subset on top.
+
+    `remove` is the mask taken out of the cloud; `colour_map` decides what is drawn on top and
+    in which colour (empty for the raw and de-snowed panels).
+    """
+    keep = ~remove
+    ax.scatter(pts[keep, 0], pts[keep, 1], s=0.7, c=base[keep], linewidths=0,
                marker=".", rasterized=True, zorder=2)
-    if shadow:
-        for mask, colour, size in ((roi & snow & gset, TP, 1.6), (roi & snow & ~gset, FP, 2.6),
-                                   (roi & gset & ~snow, FN, 4.5)):
-            if mask.any():
-                ax.scatter(pts[mask, 0], pts[mask, 1], s=size, c=colour, linewidths=0,
-                           marker=".", rasterized=True, zorder=3)
+    for mask, colour, size in colour_map:
+        if mask.any():
+            ax.scatter(pts[mask, 0], pts[mask, 1], s=size, c=colour, linewidths=0,
+                       marker=".", rasterized=True, zorder=3)
+    ax.set_xlim(-roi_radius, roi_radius)
+    ax.set_ylim(-roi_radius * 0.40, roi_radius * 0.40)
+    ax.set_aspect("equal", adjustable="datalim")
+    ax.set_xticks([])
+    ax.set_yticks([])
+    ax.set_facecolor(PANEL)
+    for side in ax.spines.values():
+        side.set_color(EDGE)
+        side.set_linewidth(0.8)
 
 
 def main() -> int:
@@ -97,18 +101,15 @@ def main() -> int:
     ap.add_argument("--gt-dir", type=pathlib.Path, required=True)
     ap.add_argument("--detection-dir", type=pathlib.Path, required=True)
     ap.add_argument("--out", type=pathlib.Path, default=pathlib.Path("docs/figures/detect.gif"))
-    ap.add_argument("--lang", default="en", choices=["en", "zh"])
-    ap.add_argument("--step", type=int, default=3, help="keep every Nth frame")
-    ap.add_argument("--limit", type=int, default=40, help="maximum frames in the GIF")
+    ap.add_argument("--step", type=int, default=5, help="keep every Nth frame")
+    ap.add_argument("--limit", type=int, default=22, help="maximum frames in the GIF")
     ap.add_argument("--roi", type=float, default=17.0)
-    ap.add_argument("--ms", type=int, default=180, help="per-frame duration in the GIF")
-    ap.add_argument("--dpi", type=int, default=95)
-    ap.add_argument("--width", type=float, default=11.4, help="figure width, inches")
-    ap.add_argument("--height", type=float, default=4.0, help="figure height, inches")
+    ap.add_argument("--ms", type=int, default=190, help="per-frame duration in the GIF")
+    ap.add_argument("--dpi", type=int, default=92)
+    ap.add_argument("--width", type=float, default=10.8, help="figure width, inches")
+    ap.add_argument("--height", type=float, default=4.9, help="figure height, inches")
     a = ap.parse_args()
-    t = TXT[a.lang]
-    matplotlib.rcParams["font.sans-serif"] = (["Noto Sans CJK JP", "DejaVu Sans"]
-                                              if a.lang == "zh" else ["DejaVu Sans"])
+    matplotlib.rcParams["font.sans-serif"] = ["DejaVu Sans"]
 
     frames = sorted(a.pcd_dir.glob("*.pcd"))[::a.step][:a.limit]
     if not frames:
@@ -126,6 +127,10 @@ def main() -> int:
         if not np.isfinite(pts).all(axis=1).all():
             pts = pts[np.isfinite(pts).all(axis=1)]
         roi, snow, gset = masks(pts, a.roi, load_indices(gt_file), load_indices(det_file))
+        inten = np.clip(pts[:, 3] / max(float(np.percentile(pts[:, 3], 99)), 1.0), 0, 1)
+        base = np.array(GREY_LO)[None, :] * (1 - inten)[:, None] + \
+            np.array(GREY_HI)[None, :] * inten[:, None]
+
         tp = int((roi & snow & gset).sum())
         fp = int((roi & snow & ~gset).sum())
         fn = int((roi & gset & ~snow).sum())
@@ -133,36 +138,44 @@ def main() -> int:
         rec = 100.0 * tp / max(tp + fn, 1)
         f1 = 2 * prec * rec / (prec + rec) if prec + rec else 0.0
 
-        fig, axes = plt.subplots(1, 3, figsize=(a.width, a.height), dpi=a.dpi, facecolor=BG)
-        fig.subplots_adjust(left=0.006, right=0.994, top=0.845, bottom=0.075, wspace=0.015)
-        for ax, kind in zip(axes, ("raw", "detection", "desnowed")):
-            ax.set_facecolor(PANEL)
-            draw(ax, pts, roi, snow, gset, kind, shadow=(kind == "detection"))
-            ax.set_xlim(-a.roi, a.roi)
-            ax.set_ylim(-a.roi * 0.37, a.roi * 0.37)
-            ax.set_aspect("equal", adjustable="datalim")
-            ax.set_xticks([])
-            ax.set_yticks([])
-            for side in ax.spines.values():
-                side.set_color("#d0d7de")
-        fig.text(0.02, 0.945, t["panels"][0], color=FG, fontsize=10.5, va="top")
-        fig.text(0.35, 0.945, t["panels"][1], color=FG, fontsize=10.5, va="top")
-        fig.text(0.68, 0.945, t["panels"][2], color=FG, fontsize=10.5, va="top")
-        fig.text(0.5, 0.995, t["metrics"].format(f=frame.stem, p=prec, r=rec, s=f1),
-                 color=MUTED, fontsize=9.5, ha="center", va="top")
-        fig.text(0.5, 0.022, t["note"], color="#6e7781", fontsize=8.0, ha="center")
+        nothing = np.zeros(pts.shape[0], dtype=bool)
+        panels = [
+            (nothing, []),                                    # SnowClear  raw
+            (snow, []),                                       # SnowClear  desnow
+            (nothing, [(roi & snow & gset, TP, 2.2),          # SnowClear  result
+                       (roi & snow & ~gset, FP, 3.4),
+                       (roi & gset & ~snow, FN, 5.5)]),
+            (nothing, []),                                    # truth      raw
+            (gset, []),                                       # truth      desnow
+            (nothing, [(roi & gset, TP, 2.2)]),               # truth      result
+        ]
+
+        fig, axes = plt.subplots(2, 3, figsize=(a.width, a.height), dpi=a.dpi, facecolor=BG)
+        fig.subplots_adjust(left=0.075, right=0.995, top=0.845, bottom=0.105,
+                            wspace=0.03, hspace=0.06)
+        for ax, (remove, colour_map) in zip(axes.ravel(), panels):
+            draw(ax, pts, base, remove, colour_map, a.roi)
+        for col, name in enumerate(COLUMNS):
+            fig.text(0.075 + (col + 0.5) * (0.92 / 3), 0.875, name, color=FG, fontsize=11.5,
+                     fontweight="bold", ha="center", va="bottom")
+        for row, name in enumerate(ROWS):
+            fig.text(0.070, 0.72 - row * 0.40, name, color=FG, fontsize=11.5,
+                     fontweight="bold", ha="right", va="center", rotation=90)
+        fig.text(0.5, 0.985, f"frame {frame.stem}    precision {prec:.1f}  ·  "
+                             f"recall {rec:.1f}  ·  F1 {f1:.1f}   (in-ROI)",
+                 color=FG, fontsize=10.5, ha="center", va="top")
+        fig.text(0.5, 0.022, LEGEND, color=MUTED, fontsize=8.6, ha="center")
         buf = io.BytesIO()
         fig.savefig(buf, format="png", facecolor=BG)
         plt.close(fig)
         buf.seek(0)
         images.append(Image.open(buf).convert("RGB"))
-        if (n + 1) % 8 == 0:
+        if (n + 1) % 6 == 0:
             print(f"  rendered {n + 1}/{len(frames)}", flush=True)
 
     if not images:
         raise SystemExit("nothing rendered")
     a.out.parent.mkdir(parents=True, exist_ok=True)
-    # one shared palette keeps the GIF small and the colours stable frame to frame
     quantised = [im.quantize(colors=96, method=Image.MEDIANCUT) for im in images]
     quantised[0].save(a.out, save_all=True, append_images=quantised[1:], duration=a.ms,
                       loop=0, optimize=True, disposal=2)

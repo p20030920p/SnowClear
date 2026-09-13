@@ -19,12 +19,14 @@
 
 </div>
 
-![One scene frame by frame: raw scan, detections coloured by outcome, and the de-snowed cloud](docs/figures/detect_scene35.gif)
+![Six panels per frame: raw scan, de-snowed cloud and detection outcome, for SnowClear and for the ground truth](docs/figures/detect_scene35.gif)
 
-*One scene, 26 consecutive frames, one fixed view: **raw scan → detection → de-snowed**. Green is
-flagged and annotated (TP), red is flagged without an annotation (FP), blue is annotated but missed
-(FN); the header carries that frame's in-ROI precision / recall / F1. The snow moves, the method
-does not.*
+*One scene, 21 consecutive frames, one fixed view — **SnowClear** on top, **ground truth** below,
+each row running **raw scan → de-snowed → result**. Green is snow flagged and annotated (TP), red is
+flagged without an annotation (FP), blue is annotated but missed (FN); the header carries that
+frame's in-ROI precision / recall / F1. Read the two rows against each other: the question about a
+de-snowing method is not whether the picture looks clean, but how far the top row is from the
+bottom one.*
 
 **SnowClear removes snowfall noise from a LiDAR scan point by point, at ≈10 ms per frame on CPU,
 with no training and no learned weights.** A raw frame goes in; the de-snowed cloud and the snow
