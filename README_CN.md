@@ -24,10 +24,9 @@
 *场景 35，连续 21 帧，固定视角。上排 SnowClear，下排真值；三列依次为原始点云、剔除、去雪后。
 绿：剔除且被标注。红：剔除但无标注。蓝：被标注却保留。*
 
-SnowClear 逐点去除旋转式 LiDAR 扫描中的降雪噪声。纯 CPU 约 10 ms/帧，无需训练，无学习权重。
+SnowClear 是一个面向旋转式 LiDAR 点云的降雪噪声去除库。纯 CPU 约 10 ms/帧，无需训练，无学习权重。
 
-输入一帧原始点云，输出去雪后的点云与雪点索引，索引位于输入点云自身的索引空间。核心只链接
-PCL、OpenMP 与 TBB，不链接 ROS，因此离线与 ROS 2 两条路径输出完全一致，并由两道逐字节门禁校验。
+核心不依赖 ROS，可离线调用，也可作为 ROS 2 节点运行。
 
 | | |
 |---|---|
@@ -76,8 +75,8 @@ ros2 launch snowclear_ros snowclear.launch.py rviz:=true
 | `~/output/snow_points` | `sensor_msgs/PointCloud2` | 被剔除的点 |
 | `~/output/snow_indices` | `std_msgs/Int32MultiArray` | 指向输入点云的索引 |
 
-所有算法参数都是 ROS 2 参数，默认值即发布值，因此
-`ros2 param set /snowclear score_threshold 0.6` 会在下一帧生效。无传感器时回放 PCD：
+所有算法参数都是 ROS 2 参数，默认值即发布值。`ros2 param set /snowclear score_threshold 0.6`
+会在下一帧生效。无传感器时回放 PCD：
 `ros2 run snowclear_ros scan_to_cloud.py --pcd frame.pcd --rate 1.0`。节点参考：
 [`docs/ROS2.md`](docs/ROS2.md)。
 
@@ -136,8 +135,8 @@ CRFOR 的数字由其官方仓库经 `tools/eval_crfor.py` 得到；其余来自
 
 ![真值去了哪里](docs/figures/fig15_budget_zh.png)
 
-*发布配置的真值预算：每个标注点计入第一个拒绝它的阶段。绿色段为召回上限，报告集上 89.90 %，实测
-召回 89.98 %；场景 16 上 ROI 门控占 40.5 %、强度上限占 14.6 %。*
+*发布配置的真值预算：每个标注点计入第一个拒绝它的阶段。绿色段为召回上限（报告集 89.90 %，实测
+89.98 %）；场景 16 上 ROI 门控占 40.5 %、强度上限占 14.6 %。*
 
 其余图见 [`docs/figures/README.md`](docs/figures/README.md)。
 

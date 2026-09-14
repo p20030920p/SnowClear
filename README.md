@@ -25,12 +25,10 @@
 Columns: raw scan, removed, de-snowed. Green: removed and annotated. Red: removed, not annotated.
 Blue: annotated, kept.*
 
-SnowClear removes snowfall noise from spinning LiDAR scans point by point. It runs on CPU at about
-10 ms per frame, with no training and no learned weights.
+SnowClear is a snow-removal library for spinning LiDAR point clouds. It runs on CPU at about 10 ms
+per frame, with no training and no learned weights.
 
-One raw frame in; the de-snowed cloud and the snow indices out, in the index space of the cloud you
-passed in. The core links PCL, OpenMP and TBB only, never ROS, so the offline and ROS 2 paths
-produce identical output. Two byte-exact gates check that.
+The core does not depend on ROS. It can be called offline or run as a ROS 2 node.
 
 | | |
 |---|---|
@@ -79,14 +77,14 @@ ros2 launch snowclear_ros snowclear.launch.py rviz:=true
 | `~/output/snow_points` | `sensor_msgs/PointCloud2` | what was removed |
 | `~/output/snow_indices` | `std_msgs/Int32MultiArray` | indices into the input cloud |
 
-All algorithm parameters are ROS 2 parameters whose defaults are the released values, so
+All algorithm parameters are ROS 2 parameters; their defaults are the released values.
 `ros2 param set /snowclear score_threshold 0.6` applies to the next scan. Replay a PCD without a
 sensor: `ros2 run snowclear_ros scan_to_cloud.py --pcd frame.pcd --rate 1.0`. Node reference:
 [`docs/ROS2.md`](docs/ROS2.md).
 
 ## Method
 
-Four tests per point, in this order. Each sees only what the previous test kept.
+Four tests per point, in this order; each sees only what the previous kept.
 
 1. **ROI gate** — `z ∈ [−1.0, 2.6] m`, `r ≤ 17 m`, elevation `≥ −23°`.
 2. **Range–intensity score** — weak returns score high: `s = (1 − I/T)^1.2`. `T(r, I)` drops where
@@ -142,8 +140,8 @@ A 1 620-frame CRFOR run takes hours at ~17 s per frame, so it is not in this tab
 ![Where the ground truth goes](docs/figures/fig15_budget.png)
 
 *Ground-truth budget for the released configuration: each annotated point is charged to the first
-stage that rejects it. Green is the recall ceiling, 89.90 % over the reported set against a measured
-recall of 89.98 %. On scene 16 the ROI gate takes 40.5 % and the intensity ceiling 14.6 %.*
+stage that rejects it. Green is the recall ceiling (89.90 % on the reported set, 89.98 % measured); on
+scene 16 the ROI gate takes 40.5 % and the intensity ceiling 14.6 %.*
 
 More figures: [`docs/figures/README.md`](docs/figures/README.md).
 
