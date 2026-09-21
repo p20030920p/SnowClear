@@ -88,6 +88,14 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Changed
 
+- **Both READMEs rewritten for a reader arriving from a CV**: the CRFOR comparison moved to the
+  front page, the licence and citation placeholders are gone from it, the error-budget figure moved
+  to `docs/figures/README.md`, the ROS 2 port's provenance is stated under Status, and the timing
+  platform (Huawei MateBook 14 2022, Intel Core i5-1240P, Release, `OMP_NUM_THREADS=2`) is named
+  under Results. The method is named **RITS** on the front page, with `SnowClear` kept as the name of
+  the reference implementation and of this repository; `CITATION.cff` carries the RITS title and
+  the author. No behaviour change.
+
 - **The bar chart is its own figure.** The scoreboard cell was sharing a grid with seven point-cloud
   panels; it is now Fig. 16 on its own (`tools/gen_score_fig.py`), and the board's eighth cell is a
   key instead. Panel grids are for looking at, bar charts are for reading numbers off.

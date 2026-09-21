@@ -1,15 +1,10 @@
-# TODO(authors): replace every placeholder below once the paper is public.
-# GitHub validates this file against the Citation File Format schema and renders
-# it behind the "Cite this repository" button. Keep it in sync with the BibTeX
-# block in README.md.
-
 cff-version: 1.2.0
-message: "If you use this software, please cite the accompanying paper."
+message: "If you use this software, please cite the accompanying paper (in preparation)."
 
-title: "SnowClear: Training-Free Snow Removal for Spinning LiDAR via RITS (Range–Intensity Thresholding with zero-intensity Surface suppression)"
+title: "RITS: Range–Intensity Thresholding with Zero-Intensity Surface Suppression for Training-Free Snow Removal in Spinning LiDAR"
 
 abstract: >-
-  SnowClear detects and removes snowfall-induced noise from mechanical spinning
+  RITS detects and removes snowfall-induced noise from mechanical spinning
   LiDAR point clouds per point, at frame rate, on CPU, without training, GPU or
   learned weights. The method combines a smooth range-intensity threshold whose
   distance dependence is a Gamma-shaped fit to the weather-particle range
@@ -21,21 +16,13 @@ abstract: >-
   byte-exact regression against a released reference output.
 
 authors:
-  # TODO(authors): replace with the real author list, e.g.
-  #   - family-names: "Doe"
-  #     given-names: "Jane"
-  #     orcid: "https://orcid.org/0000-0000-0000-0000"
-  - name: "TODO: author list"
+  - family-names: "Zhu"
+    given-names: "Zilin"
 
 repository-code: "https://github.com/p20030920p/SnowClear"
 url: "https://github.com/p20030920p/SnowClear"
 
-# TODO(authors): fill in once assigned.
-# doi: "10.0000/0000000"
 version: "1.0.0"
-
-# TODO(license): must match the LICENSE file and both package.xml files.
-license: "TODO"
 
 keywords:
   - LiDAR
