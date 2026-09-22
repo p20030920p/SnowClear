@@ -24,14 +24,11 @@ Columns: raw scan, removed, de-snowed. Green: removed and annotated. Red: remove
 Blue: annotated, kept.*
 
 RITS removes snowfall from spinning LiDAR point clouds with no training and no learned weights. One
-frame costs about 10 ms on CPU. `SnowClear` is the reference implementation, and the name of this
-repository.
+frame costs about 10 ms on CPU, and the core does not depend on ROS: call it offline, or run it as a
+ROS 2 node. `SnowClear` is the reference implementation, and the name of this repository.
 
-The core does not depend on ROS. It can be called offline or run as a ROS 2 node.
-
-A snowfall return is weak, usually zero-intensity, and sits in the same place as real structure.
-Left in, those points reach scan matching and mapping as if they were part of the scene. RITS
-removes them before that, and the price is the frame time above.
+A snowfall return is weak, usually zero-intensity, and sits where real structure is. Left in, those
+points reach scan matching and mapping as if they were part of the scene; RITS removes them first.
 
 | | |
 |---|---|
@@ -89,11 +86,10 @@ Four tests per point, in this order; each sees only what the previous kept.
 
 ## Results
 
-Macro over scenes; timing excludes I/O and evaluation. Everything below was measured on one
-thin-and-light laptop — a Huawei MateBook 14 (2022), Intel Core i5-1240P, Release build, no GPU,
-`OMP_NUM_THREADS=2` — in idle runs. Absolute milliseconds move with the machine and with machine
-load; both methods in a table were timed the same way, so the ratio between them is the part that
-travels. Reproduction commands: [`docs/figures/README.md`](docs/figures/README.md).
+Macro over scenes; timing excludes I/O and evaluation. All of it was measured on one thin-and-light
+laptop (Huawei MateBook 14 2022, Intel Core i5-1240P, Release build, no GPU, `OMP_NUM_THREADS=2`) in
+idle runs: the ratio between two methods timed the same way travels, the absolute milliseconds do
+not. Reproduction commands: [`docs/figures/README.md`](docs/figures/README.md).
 
 ### Scene 35 — every method on the same 101 frames
 
@@ -144,14 +140,11 @@ turns the second one red. Data layout: [`docs/DATASET.md`](docs/DATASET.md).
 
 ## Status
 
-- Method name: **RITS** — Range–Intensity Thresholding with zero-intensity Surface suppression.
-  `SnowClear` is the reference implementation, and the name of this repository.
-- The paper is in preparation for submission.
-- Author: Zilin Zhu (朱子霖).
-- The detection pipeline is the ROS 1 `clustering` code moved to ROS 2 — the numerics are unchanged,
-  and the byte-exact gates above are what hold them there.
-  Differences: [`docs/MIGRATION_ROS1.md`](docs/MIGRATION_ROS1.md).
-- No licence has been chosen yet; see [`LICENSE`](LICENSE).
+- **RITS** — Range–Intensity Thresholding with zero-intensity Surface suppression. `SnowClear` is the
+  reference implementation and the repository name. Paper in preparation; author Zilin Zhu (朱子霖).
+- The pipeline is the ROS 1 `clustering` code moved to ROS 2 — numerics unchanged, held there by the
+  byte-exact gates above ([`docs/MIGRATION_ROS1.md`](docs/MIGRATION_ROS1.md)).
+- No licence chosen yet; see [`LICENSE`](LICENSE).
 
 ## Documentation
 

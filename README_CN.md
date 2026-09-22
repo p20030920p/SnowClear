@@ -22,13 +22,11 @@
 *场景 35，连续 21 帧，固定视角。上排 RITS，下排真值；三列依次为原始点云、剔除、去雪后。
 绿：剔除且被标注。红：剔除但无标注。蓝：被标注却保留。*
 
-RITS 面向旋转式 LiDAR 点云去除降雪噪声，无需训练、无学习权重，纯 CPU 约 10 ms/帧。
-`SnowClear` 是它的参考实现，也是本仓库的名字。
+RITS 面向旋转式 LiDAR 点云去除降雪噪声，无需训练、无学习权重，纯 CPU 约 10 ms/帧；核心不依赖 ROS，
+既可离线调用，也可作为 ROS 2 节点运行。`SnowClear` 是它的参考实现，也是本仓库的名字。
 
-核心不依赖 ROS，可离线调用，也可作为 ROS 2 节点运行。
-
-雪的回波很弱，强度通常为 0，位置却和真实结构混在一起。留着的这些点会进入配准与建图，被当成场景的一部分。
-RITS 在它们进入下游之前把这些点去掉，代价就是上面那一帧的时间。
+雪的回波很弱，强度通常为 0，位置却和真实结构混在一起。留着的这些点会进入配准与建图，被当成场景的一部分；
+RITS 先把它们去掉。
 
 | | |
 |---|---|
@@ -85,9 +83,9 @@ ros2 launch snowclear_ros snowclear.launch.py rviz:=true
 
 ## 实验结果
 
-指标按场景取宏平均；耗时不含 I/O 与评测。以下数据全部在同一台轻薄本上测得：华为 MateBook 14（2022 款）、
-Intel Core i5-1240P、Release 构建、不使用 GPU、`OMP_NUM_THREADS=2`，空闲状态下运行。绝对毫秒数随机器与负载
-浮动；同一张表里的两种方法测法相同，因此两者之间的倍数才是可迁移的部分。复现命令见
+指标按场景取宏平均；耗时不含 I/O 与评测。全部在同一台轻薄本上测得（华为 MateBook 14 2022 款、
+Intel Core i5-1240P、Release 构建、无 GPU、`OMP_NUM_THREADS=2`），空闲状态运行：同一张表里测法相同的两个
+方法，其倍数可迁移，绝对毫秒数不可迁移。复现命令见
 [`docs/figures/README.md`](docs/figures/README.md)。
 
 ### 场景 35 —— 所有方法跑同一批 101 帧
@@ -137,12 +135,10 @@ SNOWCLEAR_DATA=/path/to/wads-mirror bash tools/verify.sh   # 干净构建 + 全�
 
 ## 状态
 
-- 方法名：**RITS** —— Range–Intensity Thresholding with zero-intensity Surface suppression；
-  `SnowClear` 是它的参考实现，也是本仓库的名字。
-- 本仓库对应的论文正在投稿中。
-- 作者：朱子霖（Zilin Zhu）。
-- 检测流程是 ROS 1 `clustering` 代码迁移到 ROS 2 的结果，数值未变，由上面的逐字节门禁保证。
-  差异见 [`docs/MIGRATION_ROS1.md`](docs/MIGRATION_ROS1.md)。
+- **RITS** —— Range–Intensity Thresholding with zero-intensity Surface suppression；`SnowClear` 是它的
+  参考实现，也是本仓库的名字。论文正在投稿中，作者朱子霖（Zilin Zhu）。
+- 检测流程是 ROS 1 `clustering` 代码迁移到 ROS 2 的结果，数值未变，由上面的逐字节门禁保证
+  （[`docs/MIGRATION_ROS1.md`](docs/MIGRATION_ROS1.md)）。
 - 许可证尚未选定；见 [`LICENSE`](LICENSE)。
 
 ## 文档
