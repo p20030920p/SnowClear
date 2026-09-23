@@ -87,7 +87,9 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   comparison board, so every panel on the page is drawn by one piece of code.
 
 ### Changed
-- **The Contact section and the credits paragraph are gone from both READMEs.** The paper, dataset and
+- **Reproducibility is off the front page.** The verify command, the three gates and the dataset-layout link
+  are gone from both READMEs; they are unchanged in `CONTRIBUTING.md` and `tools/verify.sh`. The nav no
+  longer offers a Status anchor either. No behaviour change.`n- **The Contact section and the credits paragraph are gone from both READMEs.** The paper, dataset and
   filter credits they carried are still in `CITATION.cff` and in `docs/DATASET.md`. No behaviour change.
 - **The Status section is gone from both READMEs.** The IDSOR citation it carried is not lost: it stays in
   the credits at the foot of the page. No behaviour change.
@@ -208,7 +210,9 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   an image with a collapsed plain-text fallback.
 
 ### Changed
-- **The Contact section and the credits paragraph are gone from both READMEs.** The paper, dataset and
+- **Reproducibility is off the front page.** The verify command, the three gates and the dataset-layout link
+  are gone from both READMEs; they are unchanged in `CONTRIBUTING.md` and `tools/verify.sh`. The nav no
+  longer offers a Status anchor either. No behaviour change.`n- **The Contact section and the credits paragraph are gone from both READMEs.** The paper, dataset and
   filter credits they carried are still in `CITATION.cff` and in `docs/DATASET.md`. No behaviour change.
 - **The Status section is gone from both READMEs.** The IDSOR citation it carried is not lost: it stays in
   the credits at the foot of the page. No behaviour change.
@@ -270,7 +274,9 @@ restructured so that the algorithm carries no middleware dependency.
   (the last two as explicit placeholders).
 
 ### Changed
-- **The Contact section and the credits paragraph are gone from both READMEs.** The paper, dataset and
+- **Reproducibility is off the front page.** The verify command, the three gates and the dataset-layout link
+  are gone from both READMEs; they are unchanged in `CONTRIBUTING.md` and `tools/verify.sh`. The nav no
+  longer offers a Status anchor either. No behaviour change.`n- **The Contact section and the credits paragraph are gone from both READMEs.** The paper, dataset and
   filter credits they carried are still in `CITATION.cff` and in `docs/DATASET.md`. No behaviour change.
 - **The Status section is gone from both READMEs.** The IDSOR citation it carried is not lost: it stays in
   the credits at the foot of the page. No behaviour change.

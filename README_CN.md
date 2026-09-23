@@ -11,7 +11,7 @@
 [![PCL](https://img.shields.io/badge/PCL-1.10%2B-0F9D58)](https://pointclouds.org/)
 [![Platform](https://img.shields.io/badge/platform-Linux-333333?logo=linux&logoColor=white)](#快速开始)
 
-[快速开始](#快速开始) &nbsp;•&nbsp; [方法](#方法) &nbsp;•&nbsp; [实验结果](#实验结果) &nbsp;•&nbsp; [状态](#状态)
+[快速开始](#快速开始) &nbsp;•&nbsp; [方法](#方法) &nbsp;•&nbsp; [实验结果](#实验结果)
 
 *[English](README.md) &nbsp;|&nbsp; 中文*
 
@@ -122,16 +122,6 @@ Intel Core i5-1240P、Release 构建、无 GPU、`OMP_NUM_THREADS=2`），空闲
 ![场景 35 上各方法的精确率 / 召回率 / F1](docs/figures/fig16_scores_zh.png)
 
 *场景 35，101 帧，ROI 内。*
-
-## 可复现性
-
-```bash
-SNOWCLEAR_DATA=/path/to/wads-mirror bash tools/verify.sh   # 干净构建 + 全部门禁
-```
-
-三道门禁：单元测试（`colcon test`）、离线逐字节门禁（`--mode all_checks`）、在线逐字节门禁
-（`src/snowclear_ros/test/live_check.py`）。任何可能改变检测结果的改动都会让第二道变红。数据布局见
-[`docs/DATASET.md`](docs/DATASET.md)。
 
 ## 文档
 

@@ -11,7 +11,7 @@ Training-free snow removal for spinning LiDAR
 [![PCL](https://img.shields.io/badge/PCL-1.10%2B-0F9D58)](https://pointclouds.org/)
 [![Platform](https://img.shields.io/badge/platform-Linux-333333?logo=linux&logoColor=white)](#quick-start)
 
-[Quick start](#quick-start) &nbsp;•&nbsp; [Method](#method) &nbsp;•&nbsp; [Results](#results) &nbsp;•&nbsp; [Status](#status)
+[Quick start](#quick-start) &nbsp;•&nbsp; [Method](#method) &nbsp;•&nbsp; [Results](#results)
 
 *English &nbsp;|&nbsp; [中文](README_CN.md)*
 
@@ -127,16 +127,6 @@ numbers measure, and where the remaining error sits, is in [`docs/METHOD.md`](do
 ![Precision, recall and F1 per method on scene 35](docs/figures/fig16_scores.png)
 
 *Scene 35, 101 frames, in-ROI.*
-
-## Reproducibility
-
-```bash
-SNOWCLEAR_DATA=/path/to/wads-mirror bash tools/verify.sh   # clean build + all gates
-```
-
-Three gates: unit tests (`colcon test`), the offline byte-exact gate (`--mode all_checks`) and the
-live byte-exact gate (`src/snowclear_ros/test/live_check.py`). A change that can alter detection
-turns the second one red. Data layout: [`docs/DATASET.md`](docs/DATASET.md).
 
 ## Documentation
 
