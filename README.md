@@ -33,10 +33,10 @@ points reach scan matching and mapping as if they were part of the scene; SVOR r
 | | |
 |---|---|
 | **Accuracy** — 16 scenes, 1 620 frames (WADS) | P 96.69 · R 89.98 · **F1 92.82** |
-| **Speed** — CPU only, no GPU | **≈ 10 ms** per frame |
-| **Measured on** | thin-and-light laptop: Huawei MateBook 14 (2022) · Intel Core i5-1240P (12 cores / 16 threads, 28 W) · Ubuntu 24.04 · Release build · `OMP_NUM_THREADS=2`, i.e. two of its sixteen threads |
-| **Same 101 frames against CRFOR (Wang et al., RA-L 2023)** | F1 96.90 vs 96.41, at **≈ 1 900×** its speed (9 ms vs 17 132 ms per frame, same machine) |
-| **Learning** | none |
+| **Speed** — CPU only | **≈ 10 ms** per frame |
+| **Platform** | Huawei MateBook 14 (2022) · Intel Core i5-1240P · Release · `OMP_NUM_THREADS=2` |
+| **Versus CRFOR (RA-L 2023)** | F1 **96.90** vs **96.41** · **≈ 1 900×** faster (9 vs 17 132 ms) |
+| **Training** | none |
 | **Output** | snow indices in the input cloud's own index space |
 
 ## Quick start

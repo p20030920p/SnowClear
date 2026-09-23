@@ -87,6 +87,9 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   comparison board, so every panel on the page is drawn by one piece of code.
 
 ### Changed
+- **The fact table is numbers only**: the platform and CRFOR rows carried a sentence each; they now carry
+  values (`i5-1240P`, `OMP_NUM_THREADS=2`, `96.90 vs 96.41`, `1 900x`, `9 vs 17 132 ms`), and the
+  prose stays in Results. No behaviour change.
 - **The licence placeholder is off the front page**: the Status list no longer points at `LICENSE`;
   the file itself is unchanged. No behaviour change.`n
 - **Both READMEs rewritten for a reader arriving from a CV**: the CRFOR comparison moved to the
@@ -201,6 +204,9 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   an image with a collapsed plain-text fallback.
 
 ### Changed
+- **The fact table is numbers only**: the platform and CRFOR rows carried a sentence each; they now carry
+  values (`i5-1240P`, `OMP_NUM_THREADS=2`, `96.90 vs 96.41`, `1 900x`, `9 vs 17 132 ms`), and the
+  prose stays in Results. No behaviour change.
 - **The licence placeholder is off the front page**: the Status list no longer points at `LICENSE`;
   the file itself is unchanged. No behaviour change.`n
 - README Table 2 and Table 3 now point at the measured 4-scene subset (baselines and
@@ -256,6 +262,9 @@ restructured so that the algorithm carries no middleware dependency.
   (the last two as explicit placeholders).
 
 ### Changed
+- **The fact table is numbers only**: the platform and CRFOR rows carried a sentence each; they now carry
+  values (`i5-1240P`, `OMP_NUM_THREADS=2`, `96.90 vs 96.41`, `1 900x`, `9 vs 17 132 ms`), and the
+  prose stays in Results. No behaviour change.
 - **The licence placeholder is off the front page**: the Status list no longer points at `LICENSE`;
   the file itself is unchanged. No behaviour change.`n
 - **Packages split by dependency.** The ROS 1 single catkin package became two ament packages:
