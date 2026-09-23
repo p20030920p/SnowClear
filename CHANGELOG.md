@@ -87,7 +87,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   comparison board, so every panel on the page is drawn by one piece of code.
 
 ### Changed
-
+- **The licence placeholder is off the front page**: the Status list no longer points at `LICENSE`;
+  the file itself is unchanged. No behaviour change.`n
 - **Both READMEs rewritten for a reader arriving from a CV**: the CRFOR comparison moved to the
   front page, the licence and citation placeholders are gone from it, the error-budget figure moved
   to `docs/figures/README.md`, the ROS 2 port's provenance is stated under Status, and the timing
@@ -200,7 +201,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   an image with a collapsed plain-text fallback.
 
 ### Changed
-
+- **The licence placeholder is off the front page**: the Status list no longer points at `LICENSE`;
+  the file itself is unchanged. No behaviour change.`n
 - README Table 2 and Table 3 now point at the measured 4-scene subset (baselines and
   single-switch ablations) in `docs/OPTIMIZATION.md` §6–§7, and Results gained Table 7, the
   measured error budget.
@@ -254,7 +256,8 @@ restructured so that the algorithm carries no middleware dependency.
   (the last two as explicit placeholders).
 
 ### Changed
-
+- **The licence placeholder is off the front page**: the Status list no longer points at `LICENSE`;
+  the file itself is unchanged. No behaviour change.`n
 - **Packages split by dependency.** The ROS 1 single catkin package became two ament packages:
   an algorithm core with no ROS dependency, and a thin ROS 2 adapter containing no algorithm.
 - **Configuration flows through `snowclear::ParamSource`.** `SystemConfig::load_from_ros` and

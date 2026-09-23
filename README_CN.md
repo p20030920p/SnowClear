@@ -143,7 +143,6 @@ SNOWCLEAR_DATA=/path/to/wads-mirror bash tools/verify.sh   # 干净构建 + 全�
   发布判定规则、围绕它的审计，以及 ROS 2 封装。
 - 检测流程是 ROS 1 `clustering` 代码迁移到 ROS 2 的结果，数值未变，由上面的逐字节门禁保证
   （[`docs/MIGRATION_ROS1.md`](docs/MIGRATION_ROS1.md)）。
-- 许可证尚未选定；见 [`LICENSE`](LICENSE)。
 
 ## 文档
 

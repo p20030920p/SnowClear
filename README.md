@@ -149,7 +149,6 @@ turns the second one red. Data layout: [`docs/DATASET.md`](docs/DATASET.md).
   decision rule, the audit behind it and the ROS 2 packaging.
 - The pipeline is the ROS 1 `clustering` code moved to ROS 2 — numerics unchanged, held there by the
   byte-exact gates above ([`docs/MIGRATION_ROS1.md`](docs/MIGRATION_ROS1.md)).
-- No licence chosen yet; see [`LICENSE`](LICENSE).
 
 ## Documentation
 
