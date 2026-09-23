@@ -133,17 +133,6 @@ SNOWCLEAR_DATA=/path/to/wads-mirror bash tools/verify.sh   # 干净构建 + 全�
 （`src/snowclear_ros/test/live_check.py`）。任何可能改变检测结果的改动都会让第二道变红。数据布局见
 [`docs/DATASET.md`](docs/DATASET.md)。
 
-## 状态
-
-- **SVOR** —— Surface-Veto Outlier Removal；`SnowClear` 是它的参考实现，也是本仓库的名字。论文正在
-  投稿中，作者朱子霖（Zilin Zhu）。
-- 哪些是继承来的：平滑距离–强度阈值是 **IDSOR**（Yan & Bengtsson，瑞典皇家理工 KTH，2026，
-  [arXiv:2602.05876](https://arxiv.org/abs/2602.05876)），发布配置里的 `idsor_k = 2.15`、
-  `idsor_theta = 2.38` 就是该论文的常数；经典滤波器见页脚引用。本仓库在其之上补的是零强度表面否决、
-  发布判定规则、围绕它的审计，以及 ROS 2 封装。
-- 检测流程是 ROS 1 `clustering` 代码迁移到 ROS 2 的结果，数值未变，由上面的逐字节门禁保证
-  （[`docs/MIGRATION_ROS1.md`](docs/MIGRATION_ROS1.md)）。
-
 ## 文档
 
 - 方法与发布常量：[`docs/METHOD.md`](docs/METHOD.md)

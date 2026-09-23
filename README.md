@@ -138,18 +138,6 @@ Three gates: unit tests (`colcon test`), the offline byte-exact gate (`--mode al
 live byte-exact gate (`src/snowclear_ros/test/live_check.py`). A change that can alter detection
 turns the second one red. Data layout: [`docs/DATASET.md`](docs/DATASET.md).
 
-## Status
-
-- **SVOR** — Surface-Veto Outlier Removal. `SnowClear` is the reference implementation and the
-  repository name. Paper in preparation; author Zilin Zhu (朱子霖).
-- What is inherited: the smooth range–intensity threshold is **IDSOR** (Yan & Bengtsson, KTH, 2026,
-  [arXiv:2602.05876](https://arxiv.org/abs/2602.05876)) — the released defaults `idsor_k = 2.15` and
-  `idsor_theta = 2.38` are that paper's constants, and the classical filters are cited at the foot of
-  this page. What this repository adds on top is the zero-intensity surface veto, the released
-  decision rule, the audit behind it and the ROS 2 packaging.
-- The pipeline is the ROS 1 `clustering` code moved to ROS 2 — numerics unchanged, held there by the
-  byte-exact gates above ([`docs/MIGRATION_ROS1.md`](docs/MIGRATION_ROS1.md)).
-
 ## Documentation
 
 - Method and shipped constants: [`docs/METHOD.md`](docs/METHOD.md)
