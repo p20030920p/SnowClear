@@ -158,17 +158,3 @@ turns the second one red. Data layout: [`docs/DATASET.md`](docs/DATASET.md).
   url    = {https://github.com/p20030920p/SnowClear}
 }
 ```
-
-## Contact
-
-Open an issue for bugs or reproduction failures. Include the output of `--mode all_checks` and your
-`OMP_NUM_THREADS`.
-
-The range–intensity threshold follows **IDSOR** (Yan & Bengtsson, KTH Royal Institute of Technology,
-2026, [arXiv:2602.05876](https://arxiv.org/abs/2602.05876)), which itself extends DSOR. The
-non-learned baselines in `dynamic_outlier_filters.cpp` follow
-[DROR](https://github.com/nickcharron/lidar_snow_removal) (Charron et al., CRV 2018) and
-[DSOR](https://github.com/assasinXL/dsor_filter) (Kurup & Bos, 2021), and the comparison uses
-[CRFOR](https://github.com/dut-mdmu/CRFOR) (Wang et al., 2022/2023). The evaluation set is the
-[Winter Adverse Driving dataSet](https://digitalcommons.mtu.edu/wads/) (WADS), Michigan
-Technological University.

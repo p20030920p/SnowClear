@@ -87,6 +87,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   comparison board, so every panel on the page is drawn by one piece of code.
 
 ### Changed
+- **The Contact section and the credits paragraph are gone from both READMEs.** The paper, dataset and
+  filter credits they carried are still in `CITATION.cff` and in `docs/DATASET.md`. No behaviour change.
 - **The Status section is gone from both READMEs.** The IDSOR citation it carried is not lost: it stays in
   the credits at the foot of the page. No behaviour change.
 - **The fact table is numbers only**: the platform and CRFOR rows carried a sentence each; they now carry
@@ -206,6 +208,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   an image with a collapsed plain-text fallback.
 
 ### Changed
+- **The Contact section and the credits paragraph are gone from both READMEs.** The paper, dataset and
+  filter credits they carried are still in `CITATION.cff` and in `docs/DATASET.md`. No behaviour change.
 - **The Status section is gone from both READMEs.** The IDSOR citation it carried is not lost: it stays in
   the credits at the foot of the page. No behaviour change.
 - **The fact table is numbers only**: the platform and CRFOR rows carried a sentence each; they now carry
@@ -266,6 +270,8 @@ restructured so that the algorithm carries no middleware dependency.
   (the last two as explicit placeholders).
 
 ### Changed
+- **The Contact section and the credits paragraph are gone from both READMEs.** The paper, dataset and
+  filter credits they carried are still in `CITATION.cff` and in `docs/DATASET.md`. No behaviour change.
 - **The Status section is gone from both READMEs.** The IDSOR citation it carried is not lost: it stays in
   the credits at the foot of the page. No behaviour change.
 - **The fact table is numbers only**: the platform and CRFOR rows carried a sentence each; they now carry

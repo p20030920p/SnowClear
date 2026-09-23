@@ -153,14 +153,3 @@ SNOWCLEAR_DATA=/path/to/wads-mirror bash tools/verify.sh   # 干净构建 + 全�
   url    = {https://github.com/p20030920p/SnowClear}
 }
 ```
-
-## 联系
-
-缺陷与复现失败请开 issue，并附上 `--mode all_checks` 的输出与你的 `OMP_NUM_THREADS`。
-
-距离–强度阈值遵循 **IDSOR**（Yan & Bengtsson，瑞典皇家理工 KTH，2026，
-[arXiv:2602.05876](https://arxiv.org/abs/2602.05876)），后者是对 DSOR 的扩展。`dynamic_outlier_filters.cpp`
-中的非学习基线实现遵循 [DROR](https://github.com/nickcharron/lidar_snow_removal)（Charron et al., CRV 2018）
-与 [DSOR](https://github.com/assasinXL/dsor_filter)（Kurup & Bos, 2021），对比使用
-[CRFOR](https://github.com/dut-mdmu/CRFOR)（Wang et al., 2022/2023）。评测集为密歇根理工大学
-[Winter Adverse Driving dataSet](https://digitalcommons.mtu.edu/wads/)（WADS）。
