@@ -11,7 +11,7 @@ Training-free snow removal for spinning LiDAR
 [![PCL](https://img.shields.io/badge/PCL-1.10%2B-0F9D58)](https://pointclouds.org/)
 [![Platform](https://img.shields.io/badge/platform-Linux-333333?logo=linux&logoColor=white)](#quick-start)
 
-[Quick start](#quick-start) &nbsp;•&nbsp; [Method](#method) &nbsp;•&nbsp; [Results](#results)
+[Quick start](#quick-start) &nbsp;•&nbsp; [Results](#results)
 
 *English &nbsp;|&nbsp; [中文](README_CN.md)*
 
@@ -69,20 +69,6 @@ ros2 launch snowclear_ros snowclear.launch.py rviz:=true
 ```
 
 Topics, parameters, launch arguments and diagnostics: [`docs/ROS2.md`](docs/ROS2.md).
-
-## Method
-
-Four tests per point, in this order; each sees only what the previous kept.
-
-1. **ROI gate** — `z ∈ [−1.0, 2.6] m`, `r ≤ 17 m`, elevation `≥ −23°`.
-2. **Range–intensity score** — weak returns score high: `s = (1 − I/T)^1.2`. `T(r, I)` drops where
-   beam density peaks.
-3. **Surface veto** — a zero return within 0.6 m of a bright point beyond 7 m is rejected.
-4. **Decision** — `C = 0.7·s + 0.15·h_ag` above `θ`. The height term is capped at 0.15.
-
-![Algorithm 1: the per-frame detection loop](docs/figures/algorithm1_en.png)
-
-*Algorithm 1. Constants and disabled features: [`docs/METHOD.md`](docs/METHOD.md).*
 
 ## Results
 

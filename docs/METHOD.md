@@ -29,6 +29,17 @@ One frame, six stages, all in the sensor frame:
 Optional stages that are **off** in the released configuration: voxel pre-downsampling,
 exact-duplicate merging, radius outlier removal, grid-search parameter optimisation,
 scene-adaptive parameter recommendation, downsampled-result propagation.
+### The four tests per point, in this order
+
+Each test sees only what the previous one kept. This is the decision sequence stage 4 runs:
+
+1. **ROI gate** — `z ∈ [−1.0, 2.6] m`, `r ≤ 17 m`, elevation `≥ −23°`.
+2. **Range–intensity score** — weak returns score high: `s = (1 − I/T)^1.2`; `T(r, I)` drops where beam
+   density peaks.
+3. **Surface veto** — a zero return within 0.6 m of a bright point beyond 7 m is rejected.
+4. **Decision** — `C = 0.7·s + 0.15·h_ag` above `θ` accepts the point; the height term is capped at 0.15.
+
+Sections 2 to 4 derive what each of these reduces to under the released switches.
 
 ---
 

@@ -87,6 +87,9 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   comparison board, so every panel on the page is drawn by one piece of code.
 
 ### Changed
+- **The Method section moved into `docs/METHOD.md`**, as a four-test summary under §1; the front page no
+  longer carries the four steps or the Algorithm 1 figure. The figure itself is unchanged and still indexed in
+  `docs/figures/README.md`. No behaviour change.
 - **Reproducibility is off the front page.** The verify command, the three gates and the dataset-layout link
   are gone from both READMEs; they are unchanged in `CONTRIBUTING.md` and `tools/verify.sh`. The nav no
   longer offers a Status anchor either. No behaviour change.`n- **The Contact section and the credits paragraph are gone from both READMEs.** The paper, dataset and
@@ -210,6 +213,9 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   an image with a collapsed plain-text fallback.
 
 ### Changed
+- **The Method section moved into `docs/METHOD.md`**, as a four-test summary under §1; the front page no
+  longer carries the four steps or the Algorithm 1 figure. The figure itself is unchanged and still indexed in
+  `docs/figures/README.md`. No behaviour change.
 - **Reproducibility is off the front page.** The verify command, the three gates and the dataset-layout link
   are gone from both READMEs; they are unchanged in `CONTRIBUTING.md` and `tools/verify.sh`. The nav no
   longer offers a Status anchor either. No behaviour change.`n- **The Contact section and the credits paragraph are gone from both READMEs.** The paper, dataset and
@@ -274,6 +280,9 @@ restructured so that the algorithm carries no middleware dependency.
   (the last two as explicit placeholders).
 
 ### Changed
+- **The Method section moved into `docs/METHOD.md`**, as a four-test summary under §1; the front page no
+  longer carries the four steps or the Algorithm 1 figure. The figure itself is unchanged and still indexed in
+  `docs/figures/README.md`. No behaviour change.
 - **Reproducibility is off the front page.** The verify command, the three gates and the dataset-layout link
   are gone from both READMEs; they are unchanged in `CONTRIBUTING.md` and `tools/verify.sh`. The nav no
   longer offers a Status anchor either. No behaviour change.`n- **The Contact section and the credits paragraph are gone from both READMEs.** The paper, dataset and

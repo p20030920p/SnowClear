@@ -11,7 +11,7 @@
 [![PCL](https://img.shields.io/badge/PCL-1.10%2B-0F9D58)](https://pointclouds.org/)
 [![Platform](https://img.shields.io/badge/platform-Linux-333333?logo=linux&logoColor=white)](#快速开始)
 
-[快速开始](#快速开始) &nbsp;•&nbsp; [方法](#方法) &nbsp;•&nbsp; [实验结果](#实验结果)
+[快速开始](#快速开始) &nbsp;•&nbsp; [实验结果](#实验结果)
 
 *[English](README.md) &nbsp;|&nbsp; 中文*
 
@@ -67,19 +67,6 @@ ros2 launch snowclear_ros snowclear.launch.py rviz:=true
 ```
 
 话题、参数、启动参数与诊断：见 [`docs/ROS2.md`](docs/ROS2.md)。
-
-## 方法
-
-每个点依次经过四步判定，后一步只看前一步留下的点。
-
-1. **ROI 门控** —— `z ∈ [−1.0, 2.6] m`、`r ≤ 17 m`、仰角 `≥ −23°`。
-2. **距离–强度打分** —— 弱回波得分高：`s = (1 − I/T)^1.2`；`T(r, I)` 在光束最密处降低。
-3. **表面否决** —— 7 m 之外、与高亮点相距 0.6 m 内的零回波被拒绝。
-4. **判定** —— `C = 0.7·s + 0.15·h_ag` 超过 `θ` 即接受；高度项上限 0.15。
-
-![算法 1：逐帧检测循环](docs/figures/algorithm1_zh.png)
-
-*算法 1。常量与默认关闭的特性见 [`docs/METHOD.md`](docs/METHOD.md)。*
 
 ## 实验结果
 
