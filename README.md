@@ -1,8 +1,8 @@
 <div align="center">
 
-# RITS
+# SVOR
 
-**<b>R</b>ange–<b>I</b>ntensity <b>T</b>hresholding with zero-intensity <b>S</b>urface suppression**
+**<b>S</b>urface-<b>V</b>eto <b>O</b>utlier <b>R</b>emoval**
 
 Training-free snow removal for spinning LiDAR
 
@@ -17,18 +17,18 @@ Training-free snow removal for spinning LiDAR
 
 </div>
 
-![Six panels per frame: raw scan, what was removed, what was left — RITS above, ground truth below](docs/figures/detect_scene35.gif)
+![Six panels per frame: raw scan, what was removed, what was left — SVOR above, ground truth below](docs/figures/detect_scene35.gif)
 
-*Scene 35, 21 consecutive frames, one fixed view. Top row: RITS. Bottom row: ground truth.
+*Scene 35, 21 consecutive frames, one fixed view. Top row: SVOR. Bottom row: ground truth.
 Columns: raw scan, removed, de-snowed. Green: removed and annotated. Red: removed, not annotated.
 Blue: annotated, kept.*
 
-RITS removes snowfall from spinning LiDAR point clouds with no training and no learned weights. One
+SVOR removes snowfall from spinning LiDAR point clouds with no training and no learned weights. One
 frame costs about 10 ms on CPU, and the core does not depend on ROS: call it offline, or run it as a
 ROS 2 node. `SnowClear` is the reference implementation, and the name of this repository.
 
 A snowfall return is weak, usually zero-intensity, and sits where real structure is. Left in, those
-points reach scan matching and mapping as if they were part of the scene; RITS removes them first.
+points reach scan matching and mapping as if they were part of the scene; SVOR removes them first.
 
 | | |
 |---|---|
@@ -95,14 +95,14 @@ not. Reproduction commands: [`docs/figures/README.md`](docs/figures/README.md).
 
 | Method | Precision | Recall | F1 | ms / frame |
 |---|---:|---:|---:|---:|
-| **RITS** | **96.79** | **97.07** | **96.90** | **≈ 9** |
+| **SVOR** | **96.79** | **97.07** | **96.90** | **≈ 9** |
 | CRFOR (Wang et al., RA-L 2023) | 95.95 | 96.92 | 96.41 | 17 132 |
 | DROR (Charron et al., CRV 2018) | 82.45 | 6.76 | 12.48 | 1041 |
 | DSOR (Kurup & Bos, 2021) | 81.58 | 6.93 | 12.73 | 70 |
 | SOR (Rusu et al., 2008) | 82.87 | 44.28 | 56.68 | 110 |
 | ROR (Rusu, 2009) | 77.13 | 1.86 | 3.63 | 1013 |
 
-*CRFOR runs as published, with its own preprocessing and parameters; the four filters and RITS
+*CRFOR runs as published, with its own preprocessing and parameters; the four filters and SVOR
 share ours. CRFOR's numbers come from its own repository via `tools/eval_crfor.py`, the others from
 `SCENES=35 bash tools/eval_baselines.sh`.*
 
@@ -110,7 +110,7 @@ share ours. CRFOR's numbers come from its own repository via `tools/eval_crfor.p
 
 *Frame `042126`, one window and one ground truth for every panel.*
 
-### The 16-scene reported set — RITS against the four built-in filters
+### The 16-scene reported set — SVOR against the four built-in filters
 
 | Method | Precision | Recall | F1 | ms / frame |
 |---|---:|---:|---:|---:|
@@ -118,7 +118,7 @@ share ours. CRFOR's numbers come from its own repository via `tools/eval_crfor.p
 | DSOR (Kurup & Bos, 2021) | 85.02 | 3.88 | 7.36 | 70 |
 | SOR (Rusu et al., 2008) | 89.24 | 25.56 | 37.93 | 110 |
 | ROR (Rusu, 2009) | 79.70 | 0.89 | 1.76 | 1013 |
-| **RITS** | **96.69** | **89.97** | **92.82** | **≈ 10** |
+| **SVOR** | **96.69** | **89.97** | **92.82** | **≈ 10** |
 
 *A 1 620-frame CRFOR run takes hours at ~17 s per frame, so it is not in this table. What these
 numbers measure, and where the remaining error sits, is in [`docs/METHOD.md`](docs/METHOD.md) and
@@ -140,8 +140,13 @@ turns the second one red. Data layout: [`docs/DATASET.md`](docs/DATASET.md).
 
 ## Status
 
-- **RITS** — Range–Intensity Thresholding with zero-intensity Surface suppression. `SnowClear` is the
-  reference implementation and the repository name. Paper in preparation; author Zilin Zhu (朱子霖).
+- **SVOR** — Surface-Veto Outlier Removal. `SnowClear` is the reference implementation and the
+  repository name. Paper in preparation; author Zilin Zhu (朱子霖).
+- What is inherited: the smooth range–intensity threshold is **IDSOR** (Yan & Bengtsson, KTH, 2026,
+  [arXiv:2602.05876](https://arxiv.org/abs/2602.05876)) — the released defaults `idsor_k = 2.15` and
+  `idsor_theta = 2.38` are that paper's constants, and the classical filters are cited at the foot of
+  this page. What this repository adds on top is the zero-intensity surface veto, the released
+  decision rule, the audit behind it and the ROS 2 packaging.
 - The pipeline is the ROS 1 `clustering` code moved to ROS 2 — numerics unchanged, held there by the
   byte-exact gates above ([`docs/MIGRATION_ROS1.md`](docs/MIGRATION_ROS1.md)).
 - No licence chosen yet; see [`LICENSE`](LICENSE).
@@ -158,9 +163,8 @@ turns the second one red. Data layout: [`docs/DATASET.md`](docs/DATASET.md).
 ## Citation
 
 ```bibtex
-@misc{rits,
-  title  = {RITS: Range--Intensity Thresholding with Zero-Intensity Surface Suppression
-            for Training-Free Snow Removal in Spinning LiDAR},
+@misc{svor,
+  title  = {Snow Removal for Spinning LiDAR Point Clouds with Surface-Veto Outlier Removal},
   author = {Zhu, Zilin},
   year   = {2026},
   note   = {Manuscript in preparation},
@@ -173,8 +177,11 @@ turns the second one red. Data layout: [`docs/DATASET.md`](docs/DATASET.md).
 Open an issue for bugs or reproduction failures. Include the output of `--mode all_checks` and your
 `OMP_NUM_THREADS`.
 
-The non-learned baselines in `dynamic_outlier_filters.cpp` follow
+The range–intensity threshold follows **IDSOR** (Yan & Bengtsson, KTH Royal Institute of Technology,
+2026, [arXiv:2602.05876](https://arxiv.org/abs/2602.05876)), which itself extends DSOR. The
+non-learned baselines in `dynamic_outlier_filters.cpp` follow
 [DROR](https://github.com/nickcharron/lidar_snow_removal) (Charron et al., CRV 2018) and
-[DSOR](https://github.com/assasinXL/dsor_filter) (Kurup & Bos, 2021). The evaluation set is the
+[DSOR](https://github.com/assasinXL/dsor_filter) (Kurup & Bos, 2021), and the comparison uses
+[CRFOR](https://github.com/dut-mdmu/CRFOR) (Wang et al., 2022/2023). The evaluation set is the
 [Winter Adverse Driving dataSet](https://digitalcommons.mtu.edu/wads/) (WADS), Michigan
 Technological University.

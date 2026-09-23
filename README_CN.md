@@ -1,8 +1,8 @@
 <div align="center">
 
-# RITS
+# SVOR
 
-**<b>R</b>ange–<b>I</b>ntensity <b>T</b>hresholding with zero-intensity <b>S</b>urface suppression**
+**<b>S</b>urface-<b>V</b>eto <b>O</b>utlier <b>R</b>emoval**
 
 旋转式 LiDAR 的免训练去雪方法
 
@@ -17,16 +17,16 @@
 
 </div>
 
-![每帧六面板：原始点云、剔除了什么、留下了什么；上排 RITS、下排真值](docs/figures/detect_scene35.gif)
+![每帧六面板：原始点云、剔除了什么、留下了什么；上排 SVOR、下排真值](docs/figures/detect_scene35.gif)
 
-*场景 35，连续 21 帧，固定视角。上排 RITS，下排真值；三列依次为原始点云、剔除、去雪后。
+*场景 35，连续 21 帧，固定视角。上排 SVOR，下排真值；三列依次为原始点云、剔除、去雪后。
 绿：剔除且被标注。红：剔除但无标注。蓝：被标注却保留。*
 
-RITS 面向旋转式 LiDAR 点云去除降雪噪声，无需训练、无学习权重，纯 CPU 约 10 ms/帧；核心不依赖 ROS，
+SVOR 面向旋转式 LiDAR 点云去除降雪噪声，无需训练、无学习权重，纯 CPU 约 10 ms/帧；核心不依赖 ROS，
 既可离线调用，也可作为 ROS 2 节点运行。`SnowClear` 是它的参考实现，也是本仓库的名字。
 
 雪的回波很弱，强度通常为 0，位置却和真实结构混在一起。留着的这些点会进入配准与建图，被当成场景的一部分；
-RITS 先把它们去掉。
+SVOR 先把它们去掉。
 
 | | |
 |---|---|
@@ -92,21 +92,21 @@ Intel Core i5-1240P、Release 构建、无 GPU、`OMP_NUM_THREADS=2`），空闲
 
 | 方法 | 精确率 | 召回率 | F1 | ms / 帧 |
 |---|---:|---:|---:|---:|
-| **RITS** | **96.79** | **97.07** | **96.90** | **≈ 9** |
+| **SVOR** | **96.79** | **97.07** | **96.90** | **≈ 9** |
 | CRFOR（Wang et al., RA-L 2023） | 95.95 | 96.92 | 96.41 | 17 132 |
 | DROR（Charron et al., CRV 2018） | 82.45 | 6.76 | 12.48 | 1041 |
 | DSOR（Kurup & Bos, 2021） | 81.58 | 6.93 | 12.73 | 70 |
 | SOR（Rusu et al., 2008） | 82.87 | 44.28 | 56.68 | 110 |
 | ROR（Rusu, 2009） | 77.13 | 1.86 | 3.63 | 1013 |
 
-*CRFOR 按其发布设置与自带预处理运行；四个滤波器与 RITS 共用我们的。CRFOR 的数字由其官方仓库经
+*CRFOR 按其发布设置与自带预处理运行；四个滤波器与 SVOR 共用我们的。CRFOR 的数字由其官方仓库经
 `tools/eval_crfor.py` 得到，其余来自 `SCENES=35 bash tools/eval_baselines.sh`。*
 
 ![七种方法、同一帧的鸟瞰对比](docs/figures/fig12_baselines_zh.png)
 
 *帧 `042126`，所有面板共用同一窗口与同一真值。*
 
-### 16 场景报告集 —— RITS 与四个内置滤波器
+### 16 场景报告集 —— SVOR 与四个内置滤波器
 
 | 方法 | 精确率 | 召回率 | F1 | ms / 帧 |
 |---|---:|---:|---:|---:|
@@ -114,7 +114,7 @@ Intel Core i5-1240P、Release 构建、无 GPU、`OMP_NUM_THREADS=2`），空闲
 | DSOR（Kurup & Bos, 2021） | 85.02 | 3.88 | 7.36 | 70 |
 | SOR（Rusu et al., 2008） | 89.24 | 25.56 | 37.93 | 110 |
 | ROR（Rusu, 2009） | 79.70 | 0.89 | 1.76 | 1013 |
-| **RITS** | **96.69** | **89.97** | **92.82** | **≈ 10** |
+| **SVOR** | **96.69** | **89.97** | **92.82** | **≈ 10** |
 
 *按每帧约 17 s 计算，CRFOR 跑满 1 620 帧需要数小时，因此未列入本表。这些数字衡量的是什么、剩余误差在哪里，
 见 [`docs/METHOD.md`](docs/METHOD.md) 与 [`docs/OPTIMIZATION.md`](docs/OPTIMIZATION.md)。*
@@ -135,8 +135,12 @@ SNOWCLEAR_DATA=/path/to/wads-mirror bash tools/verify.sh   # 干净构建 + 全�
 
 ## 状态
 
-- **RITS** —— Range–Intensity Thresholding with zero-intensity Surface suppression；`SnowClear` 是它的
-  参考实现，也是本仓库的名字。论文正在投稿中，作者朱子霖（Zilin Zhu）。
+- **SVOR** —— Surface-Veto Outlier Removal；`SnowClear` 是它的参考实现，也是本仓库的名字。论文正在
+  投稿中，作者朱子霖（Zilin Zhu）。
+- 哪些是继承来的：平滑距离–强度阈值是 **IDSOR**（Yan & Bengtsson，瑞典皇家理工 KTH，2026，
+  [arXiv:2602.05876](https://arxiv.org/abs/2602.05876)），发布配置里的 `idsor_k = 2.15`、
+  `idsor_theta = 2.38` 就是该论文的常数；经典滤波器见页脚引用。本仓库在其之上补的是零强度表面否决、
+  发布判定规则、围绕它的审计，以及 ROS 2 封装。
 - 检测流程是 ROS 1 `clustering` 代码迁移到 ROS 2 的结果，数值未变，由上面的逐字节门禁保证
   （[`docs/MIGRATION_ROS1.md`](docs/MIGRATION_ROS1.md)）。
 - 许可证尚未选定；见 [`LICENSE`](LICENSE)。
@@ -153,9 +157,8 @@ SNOWCLEAR_DATA=/path/to/wads-mirror bash tools/verify.sh   # 干净构建 + 全�
 ## 引用
 
 ```bibtex
-@misc{rits,
-  title  = {RITS: Range--Intensity Thresholding with Zero-Intensity Surface Suppression
-            for Training-Free Snow Removal in Spinning LiDAR},
+@misc{svor,
+  title  = {Snow Removal for Spinning LiDAR Point Clouds with Surface-Veto Outlier Removal},
   author = {Zhu, Zilin},
   year   = {2026},
   note   = {Manuscript in preparation},
@@ -167,7 +170,9 @@ SNOWCLEAR_DATA=/path/to/wads-mirror bash tools/verify.sh   # 干净构建 + 全�
 
 缺陷与复现失败请开 issue，并附上 `--mode all_checks` 的输出与你的 `OMP_NUM_THREADS`。
 
-`dynamic_outlier_filters.cpp` 中的非学习基线实现遵循
-[DROR](https://github.com/nickcharron/lidar_snow_removal)（Charron et al., CRV 2018）与
-[DSOR](https://github.com/assasinXL/dsor_filter)（Kurup & Bos, 2021）。评测集为密歇根理工大学
+距离–强度阈值遵循 **IDSOR**（Yan & Bengtsson，瑞典皇家理工 KTH，2026，
+[arXiv:2602.05876](https://arxiv.org/abs/2602.05876)），后者是对 DSOR 的扩展。`dynamic_outlier_filters.cpp`
+中的非学习基线实现遵循 [DROR](https://github.com/nickcharron/lidar_snow_removal)（Charron et al., CRV 2018）
+与 [DSOR](https://github.com/assasinXL/dsor_filter)（Kurup & Bos, 2021），对比使用
+[CRFOR](https://github.com/dut-mdmu/CRFOR)（Wang et al., 2022/2023）。评测集为密歇根理工大学
 [Winter Adverse Driving dataSet](https://digitalcommons.mtu.edu/wads/)（WADS）。

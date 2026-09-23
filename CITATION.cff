@@ -1,19 +1,30 @@
 cff-version: 1.2.0
 message: "If you use this software, please cite the accompanying paper (in preparation)."
 
-title: "RITS: Range–Intensity Thresholding with Zero-Intensity Surface Suppression for Training-Free Snow Removal in Spinning LiDAR"
+title: "Snow Removal for Spinning LiDAR Point Clouds with Surface-Veto Outlier Removal"
 
 abstract: >-
-  RITS detects and removes snowfall-induced noise from mechanical spinning
+  SVOR detects and removes snowfall-induced noise from mechanical spinning
   LiDAR point clouds per point, at frame rate, on CPU, without training, GPU or
-  learned weights. The method combines a smooth range-intensity threshold whose
-  distance dependence is a Gamma-shaped fit to the weather-particle range
-  distribution, a per-point intensity score fused with a normalised
-  height-above-ground term, and a zero-intensity surface veto that rejects points
-  attached to a bright surface. The algorithm core is ROS-agnostic and ships as a
-  library with an offline CLI; a separate ROS 2 package wraps it as a point-cloud
-  node. Both paths produce bit-identical detections, which is enforced by a
-  byte-exact regression against a released reference output.
+  learned weights. It combines the intensity- and distance-aware statistical
+  threshold of IDSOR (Yan & Bengtsson, 2026), a per-point intensity score fused
+  with a normalised height-above-ground term, and a zero-intensity surface veto
+  that rejects weak returns attached to a bright surface. The algorithm core is
+  ROS-agnostic and ships as a library with an offline CLI; a separate ROS 2
+  package wraps it as a point-cloud node. Both paths produce bit-identical
+  detections, which is enforced by a byte-exact regression against a released
+  reference output.
+
+references:
+  - type: article
+    title: "IDSOR: Intensity- and Distance-Aware Statistical Outlier Removal for Weather-Robust LiDAR Point Clouds"
+    authors:
+      - family-names: "Yan"
+        given-names: "Chenyang"
+      - family-names: "Bengtsson"
+        given-names: "Mats"
+    year: 2026
+    url: "https://arxiv.org/abs/2602.05876"
 
 authors:
   - family-names: "Zhu"

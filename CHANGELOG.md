@@ -96,6 +96,14 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   the reference implementation and of this repository; `CITATION.cff` carries the RITS title and
   the author. No behaviour change.
 
+- **The method is named SVOR (Surface-Veto Outlier Removal), and the inherited part is cited.** The
+  front page, the BibTeX block and `CITATION.cff` no longer carry the coined RITS label: in this
+  literature the acronym is the initialism of the mechanism, as in SOR, ROR, DROR, DSOR and DDIOR, so
+  the name now reads off the module this repository contributes - the zero-intensity surface veto.
+  The range-intensity threshold is IDSOR (Yan & Bengtsson, KTH, 2026, arXiv:2602.05876); the released
+  `idsor_k = 2.15` and `idsor_theta = 2.38` are that paper's constants, and both READMEs and
+  `CITATION.cff` now say so, alongside the DROR / DSOR / CRFOR citations.
+
 - **The bar chart is its own figure.** The scoreboard cell was sharing a grid with seven point-cloud
   panels; it is now Fig. 16 on its own (`tools/gen_score_fig.py`), and the board's eighth cell is a
   key instead. Panel grids are for looking at, bar charts are for reading numbers off.
